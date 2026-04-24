@@ -25,7 +25,7 @@ export default function AuthPage() {
 
     try {
       if (isLogin) {
-        const res = await axios.post("http://localhost:5002/api/login", {
+        const res = await axios.post("http://localhost:5002/api/auth/login", {  // ✅ FIXED
           email,
           password,
         });
@@ -44,7 +44,7 @@ export default function AuthPage() {
         navigate("/cars");
 
       } else {
-        await axios.post("http://localhost:5002/api/register", {
+        await axios.post("http://localhost:5002/api/auth/register", {  // ✅ FIXED
           name,
           email,
           password,

@@ -11,7 +11,7 @@ import MyBookings from "./pages/MyBookings";
 import AuthPage from "./pages/AuthPage";
 import AdminLogin from "./pages/AdminLogin";
 
-import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminDashboard from "./pages/admin/AdminDashboard"; // ✅ सिर्फ एक बार
 import AddCar from "./pages/admin/AddCar";
 import AllBookings from "./pages/admin/AllBooking";
 import AdminCars from "./pages/admin/AdminCars";
@@ -86,6 +86,7 @@ function App() {
 
           {/* 🔴 ADMIN ROUTES */}
           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+          <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="/admin/cars" element={<AdminRoute><AdminCars /></AdminRoute>} />
           <Route path="/admin/add-car" element={<AdminRoute><AddCar /></AdminRoute>} />
           <Route path="/admin/bookings" element={<AdminRoute><AllBookings /></AdminRoute>} />

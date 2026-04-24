@@ -4,64 +4,40 @@ const bcrypt = require("bcryptjs");
 
 // REGISTER
 const createUser = async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
+  const { name, email, password } = req.body;
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
-    }
+  const exist = await User.findOne({ email });
+  if (exist) return res.status(400).json({ message: "User exists" });
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+  const hashed = await bcrypt.hash(password, 10);
 
-    const user = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      role: "user" // ✅ default role
-    });
+  const user = await User.create({
+    name,
+    email,
+    password: hashed,
+    role: "user",
+  });
 
-    res.status(201).json({ user });
-
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+  res.json(user);
 };
 
 // LOGIN
 const loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: "User not found" });
-    }
+  const user = await User.findOne({ email });
+  if (!user) return res.status(401).json({ message: "Not found" });
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
+  const match = await bcrypt.compare(password, user.password);
+  if (!match) return res.status(401).json({ message: "Wrong password" });
 
-    const token = jwt.sign(
-      { id: user._id, role: user.role }, // ✅ role added to token
-      "secret123",
-      { expiresIn: "1d" }
-    );
+  const token = jwt.sign(
+    { id: user._id, role: user.role },
+    "secret123",
+    { expiresIn: "1d" }
+  );
 
-    res.json({
-      token,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role // ✅ role returned in response
-      }
-    });
-
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+  res.json({ token, user });
 };
 
 // GET USERS
@@ -73,7 +49,7 @@ const getUsers = async (req, res) => {
 // DELETE USER
 const deleteUser = async (req, res) => {
   await User.findByIdAndDelete(req.params.id);
-  res.json({ message: "User deleted" });
+  res.json({ message: "Deleted" });
 };
 
 module.exports = { createUser, loginUser, getUsers, deleteUser };

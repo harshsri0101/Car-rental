@@ -22,7 +22,7 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:5002/api/login", {
+      const res = await axios.post("http://localhost:5002/api/auth/login", { // ✅ FIXED
         email,
         password,
       });
