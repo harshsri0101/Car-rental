@@ -2,9 +2,24 @@ const express = require("express");
 const router = express.Router();
 
 const { verifyToken } = require("../middleware/auth");
-const { createBooking, getBookings } = require("../controllers/bookingController");
 
+const {
+  createBooking,
+  getBookings,
+  getMyBookings,
+  updateBookingStatus,
+} = require("../controllers/bookingController");
+
+// create booking
 router.post("/", verifyToken, createBooking);
+
+// admin - all bookings
 router.get("/", verifyToken, getBookings);
 
-module.exports = router;
+// user - own bookings
+router.get("/my", verifyToken, getMyBookings);
+
+// update status
+router.put("/:id", verifyToken, updateBookingStatus);
+
+module.exports = router; // ✅ MUST be this

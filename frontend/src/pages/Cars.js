@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../services/api";
 
 export default function Cars() {
   const [cars, setCars] = useState([]);
@@ -16,8 +16,7 @@ export default function Cars() {
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5002/api/cars")
+    API.get("/cars")
       .then((res) => {
         setCars(res.data);
         setLoading(false);
@@ -58,7 +57,7 @@ export default function Cars() {
     }
 
     try {
-      const res = await axios.post("http://localhost:5002/api/bookings", {
+      const res = await API.post("/bookings", {
         carId: selectedCar._id,
         name,
         email,
@@ -70,7 +69,7 @@ export default function Cars() {
       setBookingSuccess(true);
     } catch (err) {
       console.log("Booking error:", err);
-      alert("Booking failed. Please try again.");
+      alert(err.response?.data?.message || "Booking failed. Please try again.");
     }
   };
 
@@ -108,15 +107,19 @@ export default function Cars() {
                 />
                 <div style={styles.info}>
                   <h3>{car.name}</h3>
-                  <p>Year: {car.Year}</p>
-                  <p>Color: {car.color}</p>
-                  <p>Fuel: {car.fuel}</p>
+                  <p>Brand: {car.brand}</p>
+                  <p>Year: {car.year}</p>
+                  <p>Fuel: {car.fuelType}</p>        {/* ✅ fuelType */}
                   <p>Seats: {car.seats}</p>
                   <p>Transmission: {car.transmission}</p>
-                  <h4>Rs. {car.price} / day</h4>
+                  <h4>Rs. {car.pricePerDay} / day</h4>  {/* ✅ pricePerDay */}
                 </div>
-                <button style={styles.button} onClick={() => handleBook(car)}>
-                  Book Now
+                <button
+                  style={car.available ? styles.button : styles.buttonDisabled}
+                  onClick={() => car.available && handleBook(car)}
+                  disabled={!car.available}
+                >
+                  {car.available ? "Book Now" : "Not Available"}
                 </button>
               </div>
             ))
@@ -132,7 +135,7 @@ export default function Cars() {
 
             {bookingSuccess ? (
               <div style={styles.successBox}>
-                <h2>Booking Confirmed!</h2>
+                <h2>Booking Confirmed! 🎉</h2>
                 <p>Your booking for <strong>{selectedCar.name}</strong> is placed successfully.</p>
                 <p>We will contact you on <strong>{formData.phone}</strong>.</p>
                 <button style={styles.button} onClick={handleClose}>Close</button>
@@ -140,7 +143,7 @@ export default function Cars() {
             ) : (
               <>
                 <h2 style={styles.modalTitle}>Book: {selectedCar.name}</h2>
-                <p style={styles.modalSubtitle}>Rs. {selectedCar.price} / day</p>
+                <p style={styles.modalSubtitle}>Rs. {selectedCar.pricePerDay} / day</p> {/* ✅ pricePerDay */}
 
                 <label style={styles.label}>Full Name *</label>
                 <input
@@ -192,15 +195,21 @@ export default function Cars() {
                   min={formData.fromDate || new Date().toISOString().split("T")[0]}
                 />
 
+                {/* ✅ Total Price Preview */}
                 {formData.fromDate &&
                   formData.toDate &&
                   new Date(formData.toDate) > new Date(formData.fromDate) && (
                     <div style={styles.pricePreview}>
+                      Total Days: {Math.ceil(
+                        (new Date(formData.toDate) - new Date(formData.fromDate)) /
+                        (1000 * 60 * 60 * 24)
+                      )} days
+                      <br />
                       Total Price: Rs.{" "}
                       {Math.ceil(
                         (new Date(formData.toDate) - new Date(formData.fromDate)) /
                         (1000 * 60 * 60 * 24)
-                      ) * selectedCar.price}
+                      ) * selectedCar.pricePerDay} {/* ✅ pricePerDay */}
                     </div>
                   )}
 
@@ -240,6 +249,17 @@ const styles = {
     color: "#fff",
     border: "none",
     cursor: "pointer",
+    fontSize: "16px",
+    borderRadius: "6px",
+    marginTop: "10px",
+  },
+  buttonDisabled: {
+    width: "100%",
+    padding: "10px",
+    background: "#ccc",
+    color: "#666",
+    border: "none",
+    cursor: "not-allowed",
     fontSize: "16px",
     borderRadius: "6px",
     marginTop: "10px",

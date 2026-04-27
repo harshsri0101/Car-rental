@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-
-const API_BASE = "http://localhost:5002/api";
-
-const getAuthHeader = () => {
-  const token = localStorage.getItem("token");
-  return { headers: { Authorization: `Bearer ${token}` } };
-};
+import API from "../../services/api"; // ✅ axios ki jagah API
 
 // ─── ICONS ───────────────────────────────────────────────────────────────────
 const Icon = ({ d, size = 18 }) => (
@@ -79,7 +72,8 @@ function CarForm({ initial = {}, onSave, onClose }) {
 
   const handleSave = async () => {
     if (!form.name || !form.brand || !form.price) {
-      setErr("Name, brand, and price are required!"); return;
+      setErr("Name, brand, and price are required!");
+      return;
     }
     setSaving(true);
     try {
@@ -87,7 +81,9 @@ function CarForm({ initial = {}, onSave, onClose }) {
       onClose();
     } catch (e) {
       setErr(e.response?.data?.message || "Failed to save car");
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -140,50 +136,56 @@ export default function AdminDashboard() {
   const [cars, setCars] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [carModal, setCarModal] = useState(null); // null | "add" | car object
+  const [carModal, setCarModal] = useState(null);
   const [toast, setToast] = useState("");
 
-  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 3000);
+  };
 
   const fetchAll = async () => {
     setLoading(true);
     try {
       const [b, c, u] = await Promise.all([
-        axios.get(`${API_BASE}/bookings`, getAuthHeader()),
-        axios.get(`${API_BASE}/cars`, getAuthHeader()),
-        axios.get(`${API_BASE}/users`, getAuthHeader()),
+        API.get("/bookings"),  // ✅ fix - token automatically jayega
+        API.get("/cars"),      // ✅ fix
+        API.get("/users"),     // ✅ fix
       ]);
       setBookings(b.data);
       setCars(c.data);
       setUsers(u.data);
     } catch (e) {
       console.error(e);
-    } finally { setLoading(false); }
+      alert(e.response?.data?.message || "Failed to fetch data");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchAll(); }, []);
 
   const handleAddCar = async (form) => {
-    await axios.post(`${API_BASE}/cars`, form, getAuthHeader());
+    await API.post("/cars", form); // ✅ fix
     showToast("✅ Car added successfully!");
     fetchAll();
   };
 
   const handleEditCar = async (form) => {
-    await axios.put(`${API_BASE}/cars/${carModal._id}`, form, getAuthHeader());
+    await API.put(`/cars/${carModal._id}`, form); // ✅ fix
     showToast("✅ Car updated successfully!");
     fetchAll();
   };
 
   const handleDeleteCar = async (id) => {
     if (!window.confirm("Delete this car?")) return;
-    await axios.delete(`${API_BASE}/cars/${id}`, getAuthHeader());
+    await API.delete(`/cars/${id}`); // ✅ fix
     showToast("🗑️ Car deleted!");
     fetchAll();
   };
 
   const handleBookingStatus = async (id, status) => {
-    await axios.put(`${API_BASE}/bookings/${id}`, { status }, getAuthHeader());
+    await API.put(`/bookings/${id}`, { status }); // ✅ fix
     showToast(`✅ Booking marked as ${status}`);
     fetchAll();
   };
@@ -225,7 +227,6 @@ export default function AdminDashboard() {
 
       {/* MAIN */}
       <main style={styles.main}>
-        {/* HEADER */}
         <div style={styles.header}>
           <div>
             <h1 style={styles.heading}>Admin Dashboard</h1>
@@ -242,7 +243,7 @@ export default function AdminDashboard() {
           <div style={styles.loader}>Loading data...</div>
         ) : (
           <>
-            {/* ── BOOKINGS TAB ── */}
+            {/* BOOKINGS TAB */}
             {tab === "bookings" && (
               <div style={styles.section}>
                 <h2 style={styles.sectionTitle}>📋 All Bookings</h2>
@@ -260,10 +261,10 @@ export default function AdminDashboard() {
                         <tr><td colSpan={6} style={styles.empty}>No bookings yet</td></tr>
                       ) : bookings.map(b => (
                         <tr key={b._id} style={styles.tr}>
-                          <td style={styles.td}>{b.user?.name || b.user?.email || "N/A"}</td>
-                          <td style={styles.td}>{b.car?.name || "N/A"}</td>
-                          <td style={styles.td}>{b.startDate ? new Date(b.startDate).toLocaleDateString() : "—"}</td>
-                          <td style={styles.td}>{b.endDate ? new Date(b.endDate).toLocaleDateString() : "—"}</td>
+                          <td style={styles.td}>{b.userId?.name || b.name || "N/A"}</td>
+                          <td style={styles.td}>{b.carId?.name || "N/A"}</td>
+                          <td style={styles.td}>{b.fromDate ? new Date(b.fromDate).toLocaleDateString() : "—"}</td>
+                          <td style={styles.td}>{b.toDate ? new Date(b.toDate).toLocaleDateString() : "—"}</td>
                           <td style={styles.td}>
                             <span style={{ ...styles.badge, ...statusColor(b.status) }}>
                               {b.status || "pending"}
@@ -285,7 +286,7 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* ── CARS TAB ── */}
+            {/* CARS TAB */}
             {tab === "cars" && (
               <div style={styles.section}>
                 <div style={styles.sectionHeader}>
@@ -304,7 +305,7 @@ export default function AdminDashboard() {
                           ? <img src={car.image} alt={car.name} style={styles.carImg} />
                           : <div style={styles.carImgPlaceholder}>🚗</div>
                         }
-                        <span style={{ ...styles.badge, ...( car.available ? styles.green : styles.red), position:"absolute", top:8, right:8 }}>
+                        <span style={{ ...styles.badge, ...(car.available ? styles.green : styles.red), position: "absolute", top: 8, right: 8 }}>
                           {car.available ? "Available" : "Unavailable"}
                         </span>
                       </div>
@@ -328,7 +329,7 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* ── USERS TAB ── */}
+            {/* USERS TAB */}
             {tab === "users" && (
               <div style={styles.section}>
                 <h2 style={styles.sectionTitle}>👥 All Users</h2>
@@ -379,7 +380,6 @@ export default function AdminDashboard() {
         </Modal>
       )}
 
-      {/* TOAST */}
       {toast && <div style={styles.toast}>{toast}</div>}
     </div>
   );
@@ -394,46 +394,19 @@ const statusColor = (s) => ({
 
 // ─── STYLES ───────────────────────────────────────────────────────────────────
 const styles = {
-  root: {
-    display: "flex", minHeight: "100vh",
-    fontFamily: "'Segoe UI', sans-serif",
-    background: "#0d1117", color: "#e6edf3",
-  },
-  sidebar: {
-    width: 220, background: "#161b22",
-    borderRight: "1px solid #30363d",
-    display: "flex", flexDirection: "column",
-    padding: "24px 12px", position: "sticky", top: 0, height: "100vh",
-  },
-  sidebarLogo: {
-    fontSize: 20, fontWeight: 700, color: "#fff",
-    padding: "0 12px 24px", borderBottom: "1px solid #30363d", marginBottom: 16,
-  },
+  root: { display: "flex", minHeight: "100vh", fontFamily: "'Segoe UI', sans-serif", background: "#0d1117", color: "#e6edf3" },
+  sidebar: { width: 220, background: "#161b22", borderRight: "1px solid #30363d", display: "flex", flexDirection: "column", padding: "24px 12px", position: "sticky", top: 0, height: "100vh" },
+  sidebarLogo: { fontSize: 20, fontWeight: 700, color: "#fff", padding: "0 12px 24px", borderBottom: "1px solid #30363d", marginBottom: 16 },
   nav: { display: "flex", flexDirection: "column", gap: 4, flex: 1 },
-  navBtn: {
-    display: "flex", alignItems: "center", gap: 10,
-    padding: "10px 14px", borderRadius: 8, border: "none",
-    background: "transparent", color: "#8b949e",
-    cursor: "pointer", fontSize: 14, textAlign: "left",
-    transition: "all 0.2s",
-  },
+  navBtn: { display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 8, border: "none", background: "transparent", color: "#8b949e", cursor: "pointer", fontSize: 14, textAlign: "left", transition: "all 0.2s" },
   navBtnActive: { background: "#6c63ff22", color: "#6c63ff" },
-  logoutBtn: {
-    display: "flex", alignItems: "center", gap: 10,
-    padding: "10px 14px", borderRadius: 8, border: "none",
-    background: "transparent", color: "#e74c3c",
-    cursor: "pointer", fontSize: 14,
-  },
+  logoutBtn: { display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 8, border: "none", background: "transparent", color: "#e74c3c", cursor: "pointer", fontSize: 14 },
   main: { flex: 1, padding: "32px", overflowY: "auto" },
   header: { marginBottom: 28 },
   heading: { fontSize: 26, fontWeight: 700, margin: 0 },
   subheading: { color: "#8b949e", marginTop: 4, fontSize: 14 },
   statsRow: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 32 },
-  statCard: {
-    background: "#161b22", borderRadius: 12,
-    padding: "20px", display: "flex", alignItems: "center", gap: 16,
-    border: "1px solid #30363d",
-  },
+  statCard: { background: "#161b22", borderRadius: 12, padding: "20px", display: "flex", alignItems: "center", gap: 16, border: "1px solid #30363d" },
   statIcon: { padding: 12, borderRadius: 10 },
   statValue: { fontSize: 24, fontWeight: 700 },
   statLabel: { fontSize: 12, color: "#8b949e", marginTop: 2 },
@@ -451,20 +424,10 @@ const styles = {
   red:    { background: "#e74c3c22", color: "#e74c3c", border: "1px solid #e74c3c44" },
   blue:   { background: "#3498db22", color: "#3498db", border: "1px solid #3498db44" },
   purple: { background: "#6c63ff22", color: "#6c63ff", border: "1px solid #6c63ff44" },
-  actionBtn: (c) => ({
-    padding: "5px 12px", borderRadius: 6, border: `1px solid ${c}44`,
-    background: c + "22", color: c, cursor: "pointer", fontSize: 12, fontWeight: 600,
-  }),
-  iconBtn: (c) => ({
-    display: "flex", alignItems: "center", gap: 5,
-    padding: "6px 12px", borderRadius: 6, border: `1px solid ${c}44`,
-    background: c + "22", color: c, cursor: "pointer", fontSize: 12, fontWeight: 600,
-  }),
+  actionBtn: (c) => ({ padding: "5px 12px", borderRadius: 6, border: `1px solid ${c}44`, background: c + "22", color: c, cursor: "pointer", fontSize: 12, fontWeight: 600 }),
+  iconBtn: (c) => ({ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 6, border: `1px solid ${c}44`, background: c + "22", color: c, cursor: "pointer", fontSize: 12, fontWeight: 600 }),
   carsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16, marginTop: 16 },
-  carCard: {
-    background: "#0d1117", borderRadius: 10, border: "1px solid #30363d",
-    overflow: "hidden",
-  },
+  carCard: { background: "#0d1117", borderRadius: 10, border: "1px solid #30363d", overflow: "hidden" },
   carImgWrap: { position: "relative", height: 150, background: "#21262d" },
   carImg: { width: "100%", height: "100%", objectFit: "cover" },
   carImgPlaceholder: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 48 },
@@ -474,46 +437,17 @@ const styles = {
   carPrice: { color: "#00c6a0", fontWeight: 700, fontSize: 15, marginTop: 6 },
   carMeta: { color: "#8b949e", fontSize: 12, marginTop: 4 },
   carActions: { display: "flex", gap: 8, padding: "0 16px 14px" },
-  btnPrimary: {
-    display: "flex", alignItems: "center", gap: 6,
-    padding: "9px 18px", borderRadius: 8, border: "none",
-    background: "#6c63ff", color: "#fff", cursor: "pointer", fontSize: 14, fontWeight: 600,
-  },
-  btnSecondary: {
-    padding: "9px 18px", borderRadius: 8,
-    border: "1px solid #30363d", background: "transparent",
-    color: "#8b949e", cursor: "pointer", fontSize: 14,
-  },
-  overlay: {
-    position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
-    display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
-  },
-  modal: {
-    background: "#161b22", borderRadius: 14, border: "1px solid #30363d",
-    width: "90%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto",
-    padding: 28,
-  },
+  btnPrimary: { display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 8, border: "none", background: "#6c63ff", color: "#fff", cursor: "pointer", fontSize: 14, fontWeight: 600 },
+  btnSecondary: { padding: "9px 18px", borderRadius: 8, border: "1px solid #30363d", background: "transparent", color: "#8b949e", cursor: "pointer", fontSize: 14 },
+  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 },
+  modal: { background: "#161b22", borderRadius: 14, border: "1px solid #30363d", width: "90%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto", padding: 28 },
   modalHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
   modalTitle: { margin: 0, fontSize: 18, fontWeight: 700 },
   closeBtn: { background: "none", border: "none", color: "#8b949e", cursor: "pointer", padding: 4 },
   formGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 },
   formLabel: { display: "block", fontSize: 12, color: "#8b949e", marginBottom: 5 },
-  formInput: {
-    width: "100%", padding: "9px 12px", borderRadius: 8,
-    border: "1px solid #30363d", background: "#0d1117",
-    color: "#e6edf3", fontSize: 14, boxSizing: "border-box",
-    outline: "none",
-  },
-  errBanner: {
-    background: "#e74c3c22", border: "1px solid #e74c3c44",
-    color: "#e74c3c", padding: "10px 14px", borderRadius: 8, fontSize: 13,
-  },
+  formInput: { width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #30363d", background: "#0d1117", color: "#e6edf3", fontSize: 14, boxSizing: "border-box", outline: "none" },
+  errBanner: { background: "#e74c3c22", border: "1px solid #e74c3c44", color: "#e74c3c", padding: "10px 14px", borderRadius: 8, fontSize: 13 },
   loader: { textAlign: "center", padding: 60, color: "#8b949e", fontSize: 16 },
-  toast: {
-    position: "fixed", bottom: 28, right: 28,
-    background: "#161b22", border: "1px solid #30363d",
-    color: "#e6edf3", padding: "12px 20px", borderRadius: 10,
-    fontSize: 14, fontWeight: 600, zIndex: 200,
-    boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-  },
+  toast: { position: "fixed", bottom: 28, right: 28, background: "#161b22", border: "1px solid #30363d", color: "#e6edf3", padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 600, zIndex: 200, boxShadow: "0 8px 24px rgba(0,0,0,0.4)" },
 };

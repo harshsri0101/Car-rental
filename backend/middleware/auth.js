@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 
+// ✅ Token verify karo
 const verifyToken = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
 
@@ -8,7 +9,7 @@ const verifyToken = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, "secret123");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET); // ✅ .env se lo
     req.user = decoded;
     next();
   } catch (error) {
@@ -16,4 +17,12 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-module.exports = { verifyToken };
+// ✅ Admin check karo
+const isAdmin = (req, res, next) => {
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "Access denied. Admins only." });
+  }
+  next();
+};
+
+module.exports = { verifyToken, isAdmin };

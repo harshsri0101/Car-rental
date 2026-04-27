@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import API from "../services/api";
+
 const Booking = ({ car, onClose }) => {
   const [form, setForm] = useState({
     name: "",
@@ -17,7 +18,7 @@ const Booking = ({ car, onClose }) => {
     e.preventDefault();
 
     try {
-      await API.post("/booking", {
+      await API.post("/bookings", {   // ✅ /bookings
         carId: car._id,
         name: form.name,
         email: form.email,
@@ -31,7 +32,7 @@ const Booking = ({ car, onClose }) => {
 
     } catch (err) {
       console.log(err);
-      alert("Booking Failed");
+      alert(err.response?.data?.message || "Booking Failed"); // ✅ exact error
     }
   };
 
@@ -47,28 +48,24 @@ const Booking = ({ car, onClose }) => {
             onChange={handleChange}
             required
           />
-
           <input
             name="email"
             placeholder="Email"
             onChange={handleChange}
             required
           />
-
           <input
             name="phone"
             placeholder="Phone Number"
             onChange={handleChange}
             required
           />
-
           <input
             type="date"
             name="fromDate"
             onChange={handleChange}
             required
           />
-
           <input
             type="date"
             name="toDate"
@@ -86,10 +83,7 @@ const Booking = ({ car, onClose }) => {
 
 const overlay = {
   position: "fixed",
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
+  top: 0, left: 0, right: 0, bottom: 0,
   background: "rgba(0,0,0,0.5)",
   display: "flex",
   justifyContent: "center",
