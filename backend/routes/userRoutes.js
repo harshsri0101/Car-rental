@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { verifyToken, isAdmin } = require("../middleware/auth");
 const User = require("../models/user");
+const { deleteUser } = require("../controllers/userController");
 
 // GET ALL USERS (Admin only)
 router.get("/", verifyToken, isAdmin, async (req, res) => {
@@ -12,5 +13,7 @@ router.get("/", verifyToken, isAdmin, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+router.delete("/:id", verifyToken, isAdmin, deleteUser);
 
 module.exports = router;

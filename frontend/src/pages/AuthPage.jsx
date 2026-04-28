@@ -52,74 +52,89 @@ export default function AuthPage() {
   };
 
   return (
-    <div style={styles.wrapper}>
-      <div style={styles.left}>
-        <h1 style={styles.logo}>Car Rental</h1>
-        <p style={styles.tagline}>Book your favorite cars instantly.</p>
-        <div style={styles.adminLinkBox}>
-          <p style={styles.adminText}>Are you an admin?</p>
-          <Link to="/admin/login" style={styles.adminLink}>
-            Go to Admin Portal
-          </Link>
+    <div style={styles.page}>
+      <div style={styles.shell}>
+        <div style={styles.sideNote}>
+          <p style={styles.eyebrow}>Client Portal</p>
+          <h1 style={styles.heroTitle}>Book a car without the clutter.</h1>
+          <p style={styles.heroText}>
+            Login to browse available cars, or create an account in a few steps.
+          </p>
         </div>
-      </div>
 
-      <div style={styles.right}>
         <div style={styles.card}>
-          <div style={styles.badge}>Client Portal</div>
-          <h2 style={styles.title}>
-            {isLogin ? "Welcome Back" : "Create Account"}
-          </h2>
+          <h2 style={styles.cardTitle}>{isLogin ? "Client login" : "Create account"}</h2>
           <p style={styles.subtitle}>
-            {isLogin ? "Login to book your car" : "Join and start booking"}
+            {isLogin
+              ? "Sign in to view and book available cars."
+              : "Create your account to start booking."}
           </p>
 
-          {error && <p style={styles.errorMsg}>{error}</p>}
+          {error ? <div style={styles.errorBox}>{error}</div> : null}
 
-          <form onSubmit={handleSubmit}>
-            {!isLogin && (
+          <form onSubmit={handleSubmit} style={styles.form}>
+            {!isLogin ? (
+              <label style={styles.field}>
+                <span style={styles.label}>Full name</span>
+                <input
+                  type="text"
+                  placeholder="Enter your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  style={styles.input}
+                />
+              </label>
+            ) : null}
+
+            <label style={styles.field}>
+              <span style={styles.label}>Email</span>
               <input
-                type="text"
-                placeholder="Full Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 style={styles.input}
               />
-            )}
+            </label>
 
-            <input
-              type="email"
-              placeholder="Email Address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={styles.input}
-            />
-
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={styles.input}
-            />
+            <label style={styles.field}>
+              <span style={styles.label}>Password</span>
+              <input
+                type="password"
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={styles.input}
+              />
+            </label>
 
             <button type="submit" style={styles.button} disabled={loading}>
               {loading ? "Please wait..." : isLogin ? "Login" : "Register"}
             </button>
           </form>
 
-          <p style={styles.switchText}>
-            {isLogin ? "Don't have an account?" : "Already have an account?"}
-            <span
-              style={styles.switchLink}
+          <div style={styles.switchRow}>
+            <span style={styles.footerText}>
+              {isLogin ? "Don't have an account?" : "Already have an account?"}
+            </span>
+            <button
+              type="button"
+              style={styles.switchButton}
               onClick={() => {
                 setIsLogin(!isLogin);
                 setError("");
               }}
             >
-              {isLogin ? " Register" : " Login"}
-            </span>
-          </p>
+              {isLogin ? "Register" : "Login"}
+            </button>
+          </div>
+
+          <div style={styles.footer}>
+            <span style={styles.footerText}>Need admin access?</span>
+            <Link to="/admin/login" style={styles.link}>
+              Go to admin login
+            </Link>
+          </div>
         </div>
       </div>
     </div>
@@ -127,105 +142,146 @@ export default function AuthPage() {
 }
 
 const styles = {
-  wrapper: {
-    height: "100vh",
+  page: {
+    minHeight: "100vh",
     display: "flex",
-    background: "linear-gradient(135deg, #000, #1f2a40)",
-    color: "white",
-  },
-  left: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
     alignItems: "center",
-    padding: "40px",
-    textAlign: "center",
+    justifyContent: "center",
+    padding: "24px",
+    background:
+      "linear-gradient(180deg, #eef2f7 0%, #f8fafc 45%, #edf1f5 100%)",
+    fontFamily: '"Segoe UI", Tahoma, sans-serif',
   },
-  logo: { fontSize: "36px", marginBottom: "10px" },
-  tagline: {
+  shell: {
+    width: "100%",
+    maxWidth: "920px",
+    display: "grid",
+    gridTemplateColumns: "1fr 420px",
+    gap: "32px",
+    alignItems: "center",
+  },
+  sideNote: {
+    padding: "12px",
+  },
+  eyebrow: {
+    margin: "0 0 10px",
+    fontSize: "12px",
+    fontWeight: "700",
+    color: "#0f766e",
+    textTransform: "uppercase",
+    letterSpacing: "0.1em",
+  },
+  heroTitle: {
+    margin: "0 0 14px",
+    fontSize: "42px",
+    lineHeight: 1.1,
+    color: "#0f172a",
+    maxWidth: "420px",
+  },
+  heroText: {
+    margin: 0,
+    color: "#475569",
     fontSize: "16px",
-    color: "#ccc",
-    maxWidth: "300px",
-    marginBottom: "40px",
-  },
-  adminLinkBox: {
-    marginTop: "20px",
-    padding: "16px 24px",
-    borderRadius: "12px",
-    background: "rgba(255,255,255,0.08)",
-    border: "1px solid rgba(255,255,255,0.15)",
-  },
-  adminText: { color: "#ccc", fontSize: "13px", marginBottom: "8px" },
-  adminLink: {
-    color: "#00c6ff",
-    textDecoration: "none",
-    fontWeight: "bold",
-    fontSize: "15px",
-  },
-  right: {
-    flex: 1,
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
+    lineHeight: 1.7,
+    maxWidth: "420px",
   },
   card: {
-    width: "380px",
-    padding: "36px",
-    borderRadius: "16px",
-    background: "rgba(255,255,255,0.08)",
-    backdropFilter: "blur(12px)",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
-    textAlign: "center",
-  },
-  badge: {
-    display: "inline-block",
-    background: "#2ecc71",
-    color: "#fff",
-    padding: "4px 14px",
+    width: "100%",
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
     borderRadius: "20px",
-    fontSize: "12px",
-    fontWeight: "bold",
-    marginBottom: "16px",
+    padding: "34px",
+    boxShadow: "0 18px 40px rgba(15, 23, 42, 0.08)",
   },
-  title: { marginBottom: "5px", fontSize: "24px" },
-  subtitle: { fontSize: "14px", color: "#ccc", marginBottom: "20px" },
+  cardTitle: {
+    margin: "0 0 8px",
+    fontSize: "28px",
+    color: "#111827",
+  },
+  subtitle: {
+    margin: "0 0 24px",
+    fontSize: "14px",
+    color: "#6b7280",
+  },
+  form: {
+    display: "grid",
+    gap: "16px",
+  },
+  field: {
+    display: "grid",
+    gap: "8px",
+  },
+  label: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#374151",
+  },
   input: {
     width: "100%",
-    padding: "11px",
-    margin: "7px 0",
-    borderRadius: "8px",
-    border: "none",
-    outline: "none",
+    padding: "12px 14px",
+    borderRadius: "10px",
+    border: "1px solid #d1d5db",
     fontSize: "14px",
+    color: "#111827",
     boxSizing: "border-box",
+    outline: "none",
+    background: "#fff",
   },
   button: {
-    width: "100%",
-    padding: "11px",
-    marginTop: "10px",
-    borderRadius: "8px",
+    marginTop: "4px",
+    padding: "12px 16px",
+    borderRadius: "10px",
     border: "none",
-    background: "#2ecc71",
-    color: "#fff",
-    fontWeight: "bold",
+    background: "#111827",
+    color: "#ffffff",
+    fontSize: "14px",
+    fontWeight: "700",
     cursor: "pointer",
-    fontSize: "15px",
   },
-  switchText: { marginTop: "15px", fontSize: "13px", color: "#ccc" },
-  switchLink: {
-    color: "#00c6ff",
-    cursor: "pointer",
-    marginLeft: "5px",
-    fontWeight: "bold",
+  switchRow: {
+    marginTop: "20px",
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "12px",
+    alignItems: "center",
+    flexWrap: "wrap",
   },
-  errorMsg: {
-    background: "rgba(231,76,60,0.2)",
-    border: "1px solid #e74c3c",
-    color: "#ff6b6b",
-    padding: "8px",
-    borderRadius: "8px",
+  switchButton: {
+    border: "none",
+    background: "transparent",
+    color: "#0f766e",
     fontSize: "13px",
-    marginBottom: "10px",
+    fontWeight: "600",
+    cursor: "pointer",
+    padding: 0,
+  },
+  footer: {
+    marginTop: "18px",
+    paddingTop: "18px",
+    borderTop: "1px solid #e5e7eb",
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "12px",
+    flexWrap: "wrap",
+    alignItems: "center",
+  },
+  footerText: {
+    fontSize: "13px",
+    color: "#6b7280",
+  },
+  link: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#0f766e",
+    textDecoration: "none",
+  },
+  errorBox: {
+    marginBottom: "18px",
+    padding: "10px 12px",
+    borderRadius: "10px",
+    background: "#fef2f2",
+    border: "1px solid #fecaca",
+    color: "#b91c1c",
+    fontSize: "13px",
   },
 };

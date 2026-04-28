@@ -32,6 +32,19 @@ const createBooking = async (req, res) => {
       return res.status(404).json({ message: "Car not found" });
     }
 
+    const overlappingBooking = await Booking.findOne({
+      carId,
+      status: { $ne: "cancelled" },
+      fromDate: { $lt: to },
+      toDate: { $gt: from },
+    });
+
+    if (overlappingBooking) {
+      return res.status(409).json({
+        message: "Car is not available on that day",
+      });
+    }
+
     const dailyPrice = getNormalizedPrice(car);
 
     if (!Number.isFinite(dailyPrice) || dailyPrice <= 0) {

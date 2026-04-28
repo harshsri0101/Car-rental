@@ -18,6 +18,20 @@ const initialForm = {
   available: true,
 };
 
+function formatCurrency(value) {
+  return Number.isFinite(value) ? `Rs. ${value}` : "Rs. --";
+}
+
+function formatDate(value) {
+  return value ? new Date(value).toLocaleDateString("en-IN") : "N/A";
+}
+
+function getVisibleBookings(bookings) {
+  return bookings.filter(
+    (booking) => booking.status !== "cancelled" && booking.status !== "confirmed"
+  );
+}
+
 function CarModal({ title, form, setForm, onClose, onSubmit, saving }) {
   const update = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -28,8 +42,8 @@ function CarModal({ title, form, setForm, onClose, onSubmit, saving }) {
       <div style={styles.modal}>
         <div style={styles.modalHeader}>
           <h3 style={styles.modalTitle}>{title}</h3>
-          <button onClick={onClose} style={styles.closeBtn}>
-            X
+          <button onClick={onClose} style={styles.secondaryButton}>
+            Close
           </button>
         </div>
 
@@ -109,7 +123,7 @@ function CarModal({ title, form, setForm, onClose, onSubmit, saving }) {
               checked={form.available}
               onChange={(e) => update("available", e.target.checked)}
             />
-            Available for booking
+            Available
           </label>
           <textarea
             style={{ ...styles.input, ...styles.textarea, gridColumn: "1 / -1" }}
@@ -152,7 +166,7 @@ export default function AdminDashboard() {
         API.get("/users"),
       ]);
 
-      setBookings(bookingsRes.data);
+      setBookings(getVisibleBookings(bookingsRes.data));
       setCars(carsRes.data);
       setUsers(usersRes.data);
     } catch (error) {
@@ -245,10 +259,38 @@ export default function AdminDashboard() {
     }
   };
 
+  const deleteUser = async (id) => {
+    if (!window.confirm("Delete this user?")) {
+      return;
+    }
+
+    try {
+      await API.delete(`/users/${id}`);
+      setUsers((current) => current.filter((user) => user._id !== id));
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Failed to delete user");
+    }
+  };
+
   const updateBookingStatus = async (id, status) => {
     try {
-      await API.put(`/bookings/${id}`, { status });
-      fetchAll();
+      const response = await API.put(`/bookings/${id}`, { status });
+      const updatedBooking = response.data?.booking;
+
+      if (updatedBooking) {
+        setBookings((current) => {
+          if (status === "cancelled" || status === "confirmed") {
+            return current.filter((booking) => booking._id !== id);
+          }
+
+          return current.map((booking) =>
+            booking._id === id ? { ...booking, ...updatedBooking } : booking
+          );
+        });
+      } else {
+        fetchAll();
+      }
     } catch (error) {
       console.error(error);
       alert(error.response?.data?.message || "Failed to update booking");
@@ -265,7 +307,7 @@ export default function AdminDashboard() {
     { label: "Cars", value: cars.length },
     { label: "Users", value: users.length },
     {
-      label: "Active Bookings",
+      label: "Confirmed",
       value: bookings.filter((booking) => booking.status === "confirmed").length,
     },
   ];
@@ -273,7 +315,8 @@ export default function AdminDashboard() {
   return (
     <div style={styles.page}>
       <aside style={styles.sidebar}>
-        <h2 style={styles.sidebarTitle}>Admin</h2>
+        <h2 style={styles.sidebarTitle}>Admin Dashboard</h2>
+
         <button
           style={tab === "bookings" ? styles.activeNavButton : styles.navButton}
           onClick={() => setTab("bookings")}
@@ -292,13 +335,28 @@ export default function AdminDashboard() {
         >
           Users
         </button>
+
         <button style={styles.logoutButton} onClick={logout}>
           Logout
         </button>
       </aside>
 
       <main style={styles.main}>
-        <h1 style={styles.heading}>Admin Dashboard</h1>
+        <div style={styles.header}>
+          <div>
+            <h1 style={styles.heading}>Dashboard</h1>
+            <p style={styles.subheading}>Manage bookings, cars, and users.</p>
+          </div>
+
+          <div style={styles.headerActions}>
+            <button style={styles.secondaryButton} onClick={fetchAll}>
+              Refresh
+            </button>
+            <button style={styles.primaryButton} onClick={openAddModal}>
+              Add Car
+            </button>
+          </div>
+        </div>
 
         <div style={styles.statsGrid}>
           {stats.map((stat) => (
@@ -315,101 +373,107 @@ export default function AdminDashboard() {
           <>
             {tab === "bookings" && (
               <section style={styles.section}>
-                <h2>All Bookings</h2>
+                <h2 style={styles.sectionTitle}>Bookings</h2>
                 <div style={styles.list}>
-                  {bookings.map((booking) => (
-                    <div key={booking._id} style={styles.listCard}>
-                      <p>User: {booking.userId?.name || booking.name || "N/A"}</p>
-                      <p>Car: {booking.carId?.name || "N/A"}</p>
-                      <p>Status: {booking.status}</p>
-                      <p>
-                        Dates:{" "}
-                        {booking.fromDate
-                          ? new Date(booking.fromDate).toLocaleDateString()
-                          : "N/A"}{" "}
-                        to{" "}
-                        {booking.toDate
-                          ? new Date(booking.toDate).toLocaleDateString()
-                          : "N/A"}
-                      </p>
-                      <div style={styles.actionRow}>
-                        <button
-                          style={styles.primaryButton}
-                          onClick={() =>
-                            updateBookingStatus(booking._id, "confirmed")
-                          }
-                        >
-                          Confirm
-                        </button>
-                        <button
-                          style={styles.dangerButton}
-                          onClick={() =>
-                            updateBookingStatus(booking._id, "cancelled")
-                          }
-                        >
-                          Cancel
-                        </button>
+                  {bookings.length === 0 ? (
+                    <p>No bookings found.</p>
+                  ) : (
+                    bookings.map((booking) => (
+                      <div key={booking._id} style={styles.listCard}>
+                        <p>Username: {booking.userId?.name || "N/A"}</p>
+                        <p>Booking Name: {booking.name || "N/A"}</p>
+                        <p>Email: {booking.userId?.email || booking.email || "N/A"}</p>
+                        <p>Mobile: {booking.phone || "N/A"}</p>
+                        <p>Car: {booking.carId?.name || "N/A"}</p>
+                        <p>Status: {booking.status}</p>
+                        <p>
+                          Dates: {formatDate(booking.fromDate)} to{" "}
+                          {formatDate(booking.toDate)}
+                        </p>
+                        <p>Total: {formatCurrency(Number(booking.totalPrice))}</p>
+                        <div style={styles.actionRow}>
+                          <button
+                            style={styles.primaryButton}
+                            onClick={() => updateBookingStatus(booking._id, "confirmed")}
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            style={styles.dangerButton}
+                            onClick={() => updateBookingStatus(booking._id, "cancelled")}
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </section>
             )}
 
             {tab === "cars" && (
               <section style={styles.section}>
-                <div style={styles.sectionHeader}>
-                  <h2>Manage Cars</h2>
-                  <button style={styles.primaryButton} onClick={openAddModal}>
-                    Add Car
-                  </button>
-                </div>
-
+                <h2 style={styles.sectionTitle}>Cars</h2>
                 <div style={styles.list}>
-                  {cars.map((car) => (
-                    <div key={car._id} style={styles.listCard}>
-                      <p>Name: {car.name}</p>
-                      <p>Brand: {car.brand}</p>
-                      <p>Model: {car.model || "N/A"}</p>
-                      <p>Price: Rs. {Number.isFinite(getCarPrice(car)) ? getCarPrice(car) : "--"}</p>
-                      <p>
-                        Details: {car.seats || "N/A"} seats, {car.fuelType || "N/A"},{" "}
-                        {car.transmission || "N/A"}
-                      </p>
-                      <div style={styles.actionRow}>
-                        <button
-                          style={styles.primaryButton}
-                          onClick={() => openEditModal(car)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          style={styles.dangerButton}
-                          onClick={() => deleteCar(car._id)}
-                        >
-                          Delete
-                        </button>
+                  {cars.length === 0 ? (
+                    <p>No cars found.</p>
+                  ) : (
+                    cars.map((car) => (
+                      <div key={car._id} style={styles.listCard}>
+                        <p>Name: {car.name}</p>
+                        <p>Brand: {car.brand}</p>
+                        <p>Model: {car.model || "N/A"}</p>
+                        <p>Price: {formatCurrency(getCarPrice(car))}</p>
+                        <p>
+                          Details: {car.seats || "N/A"} seats, {car.fuelType || "N/A"},{" "}
+                          {car.transmission || "N/A"}
+                        </p>
+                        <div style={styles.actionRow}>
+                          <button
+                            style={styles.primaryButton}
+                            onClick={() => openEditModal(car)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            style={styles.dangerButton}
+                            onClick={() => deleteCar(car._id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </section>
             )}
 
             {tab === "users" && (
               <section style={styles.section}>
-                <h2>Users</h2>
+                <h2 style={styles.sectionTitle}>Users</h2>
                 <div style={styles.list}>
-                  {users.map((user) => (
-                    <div key={user._id} style={styles.listCard}>
-                      <p>Name: {user.name}</p>
-                      <p>Email: {user.email}</p>
-                      <p>Role: {user.role}</p>
-                      <p>
-                        Joined: {new Date(user.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  ))}
+                  {users.length === 0 ? (
+                    <p>No users found.</p>
+                  ) : (
+                    users.map((user) => (
+                      <div key={user._id} style={styles.listCard}>
+                        <p>Name: {user.name}</p>
+                        <p>Email: {user.email}</p>
+                        <p>Role: {user.role}</p>
+                        <p>Joined: {formatDate(user.createdAt)}</p>
+                        <div style={styles.actionRow}>
+                          <button
+                            style={styles.dangerButton}
+                            onClick={() => deleteUser(user._id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </section>
             )}
@@ -436,34 +500,36 @@ const styles = {
     display: "grid",
     gridTemplateColumns: "220px 1fr",
     minHeight: "100vh",
-    background: "#0f172a",
-    color: "#e2e8f0",
+    background: "#f5f5f5",
+    color: "#111827",
+    fontFamily: '"Segoe UI", Tahoma, sans-serif',
   },
   sidebar: {
+    background: "#ffffff",
+    borderRight: "1px solid #e5e7eb",
     padding: "24px 16px",
-    borderRight: "1px solid #1e293b",
     display: "flex",
     flexDirection: "column",
-    gap: "12px",
-    background: "#111827",
+    gap: "10px",
   },
   sidebarTitle: {
     margin: "0 0 12px",
+    fontSize: "22px",
   },
   navButton: {
     padding: "10px 12px",
-    background: "transparent",
-    border: "1px solid #334155",
-    color: "#cbd5e1",
+    background: "#ffffff",
+    border: "1px solid #d1d5db",
+    color: "#111827",
     borderRadius: "8px",
     cursor: "pointer",
     textAlign: "left",
   },
   activeNavButton: {
     padding: "10px 12px",
-    background: "#2563eb",
-    border: "1px solid #2563eb",
-    color: "white",
+    background: "#111827",
+    border: "1px solid #111827",
+    color: "#ffffff",
     borderRadius: "8px",
     cursor: "pointer",
     textAlign: "left",
@@ -471,48 +537,64 @@ const styles = {
   logoutButton: {
     marginTop: "auto",
     padding: "10px 12px",
-    background: "#7f1d1d",
-    border: "1px solid #7f1d1d",
-    color: "white",
+    background: "#fee2e2",
+    border: "1px solid #fecaca",
+    color: "#b91c1c",
     borderRadius: "8px",
     cursor: "pointer",
   },
   main: {
-    padding: "32px",
+    padding: "24px",
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "16px",
+    flexWrap: "wrap",
+    marginBottom: "24px",
   },
   heading: {
-    marginTop: 0,
+    margin: "0 0 6px",
+    fontSize: "28px",
+  },
+  subheading: {
+    margin: 0,
+    color: "#6b7280",
+  },
+  headerActions: {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
   },
   statsGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
     gap: "16px",
     marginBottom: "24px",
   },
   statCard: {
-    background: "#111827",
-    border: "1px solid #1e293b",
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
     borderRadius: "12px",
-    padding: "20px",
+    padding: "18px",
   },
   statValue: {
     fontSize: "28px",
     fontWeight: "700",
   },
   statLabel: {
-    color: "#94a3b8",
+    color: "#6b7280",
     marginTop: "6px",
   },
   section: {
-    background: "#111827",
-    border: "1px solid #1e293b",
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
     borderRadius: "12px",
     padding: "20px",
   },
-  sectionHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
+  sectionTitle: {
+    marginTop: 0,
     marginBottom: "16px",
   },
   list: {
@@ -520,8 +602,8 @@ const styles = {
     gap: "16px",
   },
   listCard: {
-    background: "#0f172a",
-    border: "1px solid #334155",
+    background: "#f9fafb",
+    border: "1px solid #e5e7eb",
     borderRadius: "10px",
     padding: "16px",
   },
@@ -529,35 +611,36 @@ const styles = {
     display: "flex",
     gap: "10px",
     marginTop: "12px",
+    flexWrap: "wrap",
   },
   primaryButton: {
     padding: "10px 14px",
-    background: "#2563eb",
+    background: "#111827",
     border: "none",
-    color: "white",
+    color: "#ffffff",
     borderRadius: "8px",
     cursor: "pointer",
   },
   secondaryButton: {
     padding: "10px 14px",
-    background: "transparent",
-    border: "1px solid #475569",
-    color: "#e2e8f0",
+    background: "#ffffff",
+    border: "1px solid #d1d5db",
+    color: "#111827",
     borderRadius: "8px",
     cursor: "pointer",
   },
   dangerButton: {
     padding: "10px 14px",
-    background: "#dc2626",
-    border: "none",
-    color: "white",
+    background: "#fee2e2",
+    border: "1px solid #fecaca",
+    color: "#b91c1c",
     borderRadius: "8px",
     cursor: "pointer",
   },
   overlay: {
     position: "fixed",
     inset: 0,
-    background: "rgba(15, 23, 42, 0.8)",
+    background: "rgba(0,0,0,0.35)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -566,27 +649,22 @@ const styles = {
   modal: {
     width: "100%",
     maxWidth: "760px",
-    background: "#111827",
-    border: "1px solid #1e293b",
+    background: "#ffffff",
     borderRadius: "14px",
     padding: "24px",
+    maxHeight: "90vh",
+    overflowY: "auto",
   },
   modalHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: "12px",
     marginBottom: "16px",
+    flexWrap: "wrap",
   },
   modalTitle: {
     margin: 0,
-  },
-  closeBtn: {
-    background: "transparent",
-    border: "1px solid #475569",
-    color: "#e2e8f0",
-    borderRadius: "8px",
-    padding: "8px 10px",
-    cursor: "pointer",
   },
   formGrid: {
     display: "grid",
@@ -597,9 +675,9 @@ const styles = {
     width: "100%",
     padding: "10px 12px",
     borderRadius: "8px",
-    border: "1px solid #334155",
-    background: "#0f172a",
-    color: "#e2e8f0",
+    border: "1px solid #d1d5db",
+    background: "#ffffff",
+    color: "#111827",
     boxSizing: "border-box",
   },
   textarea: {
@@ -616,5 +694,6 @@ const styles = {
     justifyContent: "flex-end",
     gap: "10px",
     marginTop: "18px",
+    flexWrap: "wrap",
   },
 };

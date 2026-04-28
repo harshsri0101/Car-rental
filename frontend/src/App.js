@@ -6,7 +6,6 @@ import AdminNavbar from "./components/AdminNavbar";
 import Home from "./pages/Home";
 import Cars from "./pages/Cars";
 import Booking from "./pages/Booking";
-import MyBookings from "./pages/MyBookings";
 
 import AuthPage from "./pages/AuthPage";
 import AdminLogin from "./pages/AdminLogin";
@@ -82,7 +81,7 @@ function App() {
           <Route path="/" element={<ClientRoute><Home /></ClientRoute>} />
           <Route path="/cars" element={<ClientRoute><Cars /></ClientRoute>} />
           <Route path="/booking" element={<ClientRoute><Booking /></ClientRoute>} />
-          <Route path="/my-bookings" element={<ClientRoute><MyBookings /></ClientRoute>} />
+          <Route path="/my-bookings" element={<Navigate to="/cars" replace />} />
 
           {/* 🔴 ADMIN ROUTES */}
           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
