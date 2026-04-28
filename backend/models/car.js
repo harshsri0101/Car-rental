@@ -1,46 +1,21 @@
 const mongoose = require("mongoose");
 
-const carSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
+const carSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    brand: { type: String, required: true },
+    model: String,
+    year: Number,
+    pricePerDay: { type: Number, required: true }, // ✅ important
+    fuelType: String,
+    transmission: String,
+    seats: Number,
+    image: String,
+    available: { type: Boolean, default: true },
+    location: String,
+    description: String,
   },
-  brand: {
-    type: String,
-    required: true,
-  },
-  model: {
-    type: String,
-  },
-  year: {
-    type: Number,
-  },
-  pricePerDay: {
-    type: Number,
-    required: true,
-  },
-  fuelType: {
-    type: String, // Petrol / Diesel / Electric
-  },
-  transmission: {
-    type: String, // Manual / Automatic
-  },
-  seats: {
-    type: Number,
-  },
-  image: {
-    type: String,
-  },
-  available: {
-    type: Boolean,
-    default: true,
-  },
-  location: {
-    type: String,
-  },
-  description: {
-    type: String,
-  },
-}, { timestamps: true });
+  { timestamps: true }
+);
 
 module.exports = mongoose.model("Car", carSchema);

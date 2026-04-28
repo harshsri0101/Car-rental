@@ -1,8 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const { verifyToken } = require("../middleware/auth");
-
+const { verifyToken, isAdmin } = require("../middleware/auth");
 const {
   createBooking,
   getBookings,
@@ -10,16 +9,9 @@ const {
   updateBookingStatus,
 } = require("../controllers/bookingController");
 
-// create booking
 router.post("/", verifyToken, createBooking);
-
-// admin - all bookings
-router.get("/", verifyToken, getBookings);
-
-// user - own bookings
+router.get("/", verifyToken, isAdmin, getBookings);
 router.get("/my", verifyToken, getMyBookings);
+router.put("/:id", verifyToken, isAdmin, updateBookingStatus);
 
-// update status
-router.put("/:id", verifyToken, updateBookingStatus);
-
-module.exports = router; // ✅ MUST be this
+module.exports = router;

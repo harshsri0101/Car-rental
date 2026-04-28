@@ -1,453 +1,620 @@
-import React, { useState, useEffect } from "react";
-import API from "../../services/api"; // ✅ axios ki jagah API
+import React, { useEffect, useState } from "react";
+import API from "../../services/api";
 
-// ─── ICONS ───────────────────────────────────────────────────────────────────
-const Icon = ({ d, size = 18 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d={d} />
-  </svg>
-);
-const Icons = {
-  car:      "M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v5M16 17h2M5 17h6m5 0a2 2 0 100 4 2 2 0 000-4zM7 17a2 2 0 100 4 2 2 0 000-4z",
-  booking:  "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
-  logout:   "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
-  plus:     "M12 5v14M5 12h14",
-  edit:     "M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z",
-  trash:    "M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6",
-  close:    "M18 6L6 18M6 6l12 12",
-  check:    "M20 6L9 17l-5-5",
-  users:    "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
-  dashboard:"M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z",
+const getCarPrice = (car) => Number(car?.pricePerDay ?? car?.price);
+
+const initialForm = {
+  name: "",
+  brand: "",
+  model: "",
+  year: "",
+  pricePerDay: "",
+  fuelType: "Petrol",
+  transmission: "Manual",
+  seats: "",
+  image: "",
+  location: "",
+  description: "",
+  available: true,
 };
 
-// ─── STAT CARD ────────────────────────────────────────────────────────────────
-function StatCard({ label, value, icon, color }) {
-  return (
-    <div style={{ ...styles.statCard, borderTop: `3px solid ${color}` }}>
-      <div style={{ ...styles.statIcon, background: color + "22", color }}>
-        <Icon d={Icons[icon]} size={22} />
-      </div>
-      <div>
-        <div style={styles.statValue}>{value}</div>
-        <div style={styles.statLabel}>{label}</div>
-      </div>
-    </div>
-  );
-}
+function CarModal({ title, form, setForm, onClose, onSubmit, saving }) {
+  const update = (key, value) => {
+    setForm((current) => ({ ...current, [key]: value }));
+  };
 
-// ─── MODAL ────────────────────────────────────────────────────────────────────
-function Modal({ title, onClose, children }) {
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
         <div style={styles.modalHeader}>
           <h3 style={styles.modalTitle}>{title}</h3>
           <button onClick={onClose} style={styles.closeBtn}>
-            <Icon d={Icons.close} />
+            X
           </button>
         </div>
-        {children}
-      </div>
-    </div>
-  );
-}
 
-// ─── CAR FORM ─────────────────────────────────────────────────────────────────
-function CarForm({ initial = {}, onSave, onClose }) {
-  const [form, setForm] = useState({
-    name: initial.name || "",
-    brand: initial.brand || "",
-    price: initial.price || "",
-    category: initial.category || "Sedan",
-    seats: initial.seats || "",
-    fuel: initial.fuel || "Petrol",
-    image: initial.image || "",
-    available: initial.available !== false,
-  });
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState("");
-
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-
-  const handleSave = async () => {
-    if (!form.name || !form.brand || !form.price) {
-      setErr("Name, brand, and price are required!");
-      return;
-    }
-    setSaving(true);
-    try {
-      await onSave(form);
-      onClose();
-    } catch (e) {
-      setErr(e.response?.data?.message || "Failed to save car");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div style={styles.formGrid}>
-      {err && <div style={{ ...styles.errBanner, gridColumn: "1/-1" }}>{err}</div>}
-      {[
-        ["name", "Car Name", "text"],
-        ["brand", "Brand", "text"],
-        ["price", "Price / Day (₹)", "number"],
-        ["seats", "Seats", "number"],
-        ["image", "Image URL", "text"],
-      ].map(([k, ph, t]) => (
-        <div key={k} style={k === "image" ? { gridColumn: "1/-1" } : {}}>
-          <label style={styles.formLabel}>{ph}</label>
-          <input type={t} value={form[k]} onChange={e => set(k, e.target.value)}
-            style={styles.formInput} placeholder={ph} />
+        <div style={styles.formGrid}>
+          <input
+            style={styles.input}
+            placeholder="Car name"
+            value={form.name}
+            onChange={(e) => update("name", e.target.value)}
+          />
+          <input
+            style={styles.input}
+            placeholder="Brand"
+            value={form.brand}
+            onChange={(e) => update("brand", e.target.value)}
+          />
+          <input
+            style={styles.input}
+            placeholder="Model"
+            value={form.model}
+            onChange={(e) => update("model", e.target.value)}
+          />
+          <input
+            style={styles.input}
+            placeholder="Year"
+            type="number"
+            value={form.year}
+            onChange={(e) => update("year", e.target.value)}
+          />
+          <input
+            style={styles.input}
+            placeholder="Price per day"
+            type="number"
+            value={form.pricePerDay}
+            onChange={(e) => update("pricePerDay", e.target.value)}
+          />
+          <input
+            style={styles.input}
+            placeholder="Seats"
+            type="number"
+            value={form.seats}
+            onChange={(e) => update("seats", e.target.value)}
+          />
+          <select
+            style={styles.input}
+            value={form.fuelType}
+            onChange={(e) => update("fuelType", e.target.value)}
+          >
+            {["Petrol", "Diesel", "Electric", "Hybrid"].map((item) => (
+              <option key={item}>{item}</option>
+            ))}
+          </select>
+          <select
+            style={styles.input}
+            value={form.transmission}
+            onChange={(e) => update("transmission", e.target.value)}
+          >
+            {["Manual", "Automatic"].map((item) => (
+              <option key={item}>{item}</option>
+            ))}
+          </select>
+          <input
+            style={{ ...styles.input, gridColumn: "1 / -1" }}
+            placeholder="Image URL"
+            value={form.image}
+            onChange={(e) => update("image", e.target.value)}
+          />
+          <input
+            style={styles.input}
+            placeholder="Location"
+            value={form.location}
+            onChange={(e) => update("location", e.target.value)}
+          />
+          <label style={styles.checkboxRow}>
+            <input
+              type="checkbox"
+              checked={form.available}
+              onChange={(e) => update("available", e.target.checked)}
+            />
+            Available for booking
+          </label>
+          <textarea
+            style={{ ...styles.input, ...styles.textarea, gridColumn: "1 / -1" }}
+            placeholder="Description"
+            value={form.description}
+            onChange={(e) => update("description", e.target.value)}
+          />
         </div>
-      ))}
-      <div>
-        <label style={styles.formLabel}>Category</label>
-        <select value={form.category} onChange={e => set("category", e.target.value)} style={styles.formInput}>
-          {["Sedan", "SUV", "Hatchback", "Luxury", "Electric"].map(c => <option key={c}>{c}</option>)}
-        </select>
-      </div>
-      <div>
-        <label style={styles.formLabel}>Fuel Type</label>
-        <select value={form.fuel} onChange={e => set("fuel", e.target.value)} style={styles.formInput}>
-          {["Petrol", "Diesel", "Electric", "Hybrid"].map(f => <option key={f}>{f}</option>)}
-        </select>
-      </div>
-      <div style={{ gridColumn: "1/-1", display: "flex", alignItems: "center", gap: 10 }}>
-        <input type="checkbox" id="avail" checked={form.available}
-          onChange={e => set("available", e.target.checked)} style={{ width: 16, height: 16 }} />
-        <label htmlFor="avail" style={styles.formLabel}>Available for booking</label>
-      </div>
-      <div style={{ gridColumn: "1/-1", display: "flex", gap: 10, justifyContent: "flex-end" }}>
-        <button onClick={onClose} style={styles.btnSecondary}>Cancel</button>
-        <button onClick={handleSave} style={styles.btnPrimary} disabled={saving}>
-          {saving ? "Saving..." : "💾 Save Car"}
-        </button>
+
+        <div style={styles.modalActions}>
+          <button style={styles.secondaryButton} onClick={onClose}>
+            Cancel
+          </button>
+          <button style={styles.primaryButton} onClick={onSubmit} disabled={saving}>
+            {saving ? "Saving..." : "Save"}
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const [tab, setTab] = useState("bookings");
   const [bookings, setBookings] = useState([]);
   const [cars, setCars] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [carModal, setCarModal] = useState(null);
-  const [toast, setToast] = useState("");
-
-  const showToast = (msg) => {
-    setToast(msg);
-    setTimeout(() => setToast(""), 3000);
-  };
+  const [saving, setSaving] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingCarId, setEditingCarId] = useState(null);
+  const [form, setForm] = useState(initialForm);
 
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [b, c, u] = await Promise.all([
-        API.get("/bookings"),  // ✅ fix - token automatically jayega
-        API.get("/cars"),      // ✅ fix
-        API.get("/users"),     // ✅ fix
+      const [bookingsRes, carsRes, usersRes] = await Promise.all([
+        API.get("/bookings"),
+        API.get("/cars"),
+        API.get("/users"),
       ]);
-      setBookings(b.data);
-      setCars(c.data);
-      setUsers(u.data);
-    } catch (e) {
-      console.error(e);
-      alert(e.response?.data?.message || "Failed to fetch data");
+
+      setBookings(bookingsRes.data);
+      setCars(carsRes.data);
+      setUsers(usersRes.data);
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Failed to fetch admin data");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchAll(); }, []);
-
-  const handleAddCar = async (form) => {
-    await API.post("/cars", form); // ✅ fix
-    showToast("✅ Car added successfully!");
+  useEffect(() => {
     fetchAll();
+  }, []);
+
+  const resetModal = () => {
+    setModalOpen(false);
+    setEditingCarId(null);
+    setForm(initialForm);
   };
 
-  const handleEditCar = async (form) => {
-    await API.put(`/cars/${carModal._id}`, form); // ✅ fix
-    showToast("✅ Car updated successfully!");
-    fetchAll();
+  const openAddModal = () => {
+    setEditingCarId(null);
+    setForm(initialForm);
+    setModalOpen(true);
   };
 
-  const handleDeleteCar = async (id) => {
-    if (!window.confirm("Delete this car?")) return;
-    await API.delete(`/cars/${id}`); // ✅ fix
-    showToast("🗑️ Car deleted!");
-    fetchAll();
+  const openEditModal = (car) => {
+    setEditingCarId(car._id);
+    setForm({
+      name: car.name || "",
+      brand: car.brand || "",
+      model: car.model || "",
+      year: car.year || "",
+      pricePerDay: car.pricePerDay ?? car.price ?? "",
+      fuelType: car.fuelType || "Petrol",
+      transmission: car.transmission || "Manual",
+      seats: car.seats || "",
+      image: car.image || "",
+      location: car.location || "",
+      description: car.description || "",
+      available: car.available !== false,
+    });
+    setModalOpen(true);
   };
 
-  const handleBookingStatus = async (id, status) => {
-    await API.put(`/bookings/${id}`, { status }); // ✅ fix
-    showToast(`✅ Booking marked as ${status}`);
-    fetchAll();
+  const buildCarPayload = () => ({
+    ...form,
+    year: form.year ? Number(form.year) : undefined,
+    pricePerDay: Number(form.pricePerDay),
+    seats: form.seats ? Number(form.seats) : undefined,
+  });
+
+  const saveCar = async () => {
+    if (!form.name || !form.brand || !form.pricePerDay) {
+      alert("Name, brand, and price per day are required.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = buildCarPayload();
+
+      if (editingCarId) {
+        await API.put(`/cars/${editingCarId}`, payload);
+      } else {
+        await API.post("/cars", payload);
+      }
+
+      resetModal();
+      fetchAll();
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Failed to save car");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleLogout = () => {
+  const deleteCar = async (id) => {
+    if (!window.confirm("Delete this car?")) {
+      return;
+    }
+
+    try {
+      await API.delete(`/cars/${id}`);
+      fetchAll();
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Failed to delete car");
+    }
+  };
+
+  const updateBookingStatus = async (id, status) => {
+    try {
+      await API.put(`/bookings/${id}`, { status });
+      fetchAll();
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Failed to update booking");
+    }
+  };
+
+  const logout = () => {
     localStorage.clear();
     window.location.href = "/admin/login";
   };
 
   const stats = [
-    { label: "Total Bookings", value: bookings.length, icon: "booking", color: "#6c63ff" },
-    { label: "Total Cars", value: cars.length, icon: "car", color: "#00c6a0" },
-    { label: "Total Users", value: users.length, icon: "users", color: "#f39c12" },
-    { label: "Active Bookings", value: bookings.filter(b => b.status === "confirmed").length, icon: "check", color: "#e74c3c" },
+    { label: "Bookings", value: bookings.length },
+    { label: "Cars", value: cars.length },
+    { label: "Users", value: users.length },
+    {
+      label: "Active Bookings",
+      value: bookings.filter((booking) => booking.status === "confirmed").length,
+    },
   ];
 
   return (
-    <div style={styles.root}>
-      {/* SIDEBAR */}
+    <div style={styles.page}>
       <aside style={styles.sidebar}>
-        <div style={styles.sidebarLogo}>🚗 CarAdmin</div>
-        <nav style={styles.nav}>
-          {[
-            { id: "bookings", label: "Bookings", icon: "booking" },
-            { id: "cars",     label: "Manage Cars", icon: "car" },
-            { id: "users",    label: "Users", icon: "users" },
-          ].map(({ id, label, icon }) => (
-            <button key={id} onClick={() => setTab(id)}
-              style={{ ...styles.navBtn, ...(tab === id ? styles.navBtnActive : {}) }}>
-              <Icon d={Icons[icon]} size={16} />
-              {label}
-            </button>
-          ))}
-        </nav>
-        <button onClick={handleLogout} style={styles.logoutBtn}>
-          <Icon d={Icons.logout} size={16} /> Logout
+        <h2 style={styles.sidebarTitle}>Admin</h2>
+        <button
+          style={tab === "bookings" ? styles.activeNavButton : styles.navButton}
+          onClick={() => setTab("bookings")}
+        >
+          Bookings
+        </button>
+        <button
+          style={tab === "cars" ? styles.activeNavButton : styles.navButton}
+          onClick={() => setTab("cars")}
+        >
+          Cars
+        </button>
+        <button
+          style={tab === "users" ? styles.activeNavButton : styles.navButton}
+          onClick={() => setTab("users")}
+        >
+          Users
+        </button>
+        <button style={styles.logoutButton} onClick={logout}>
+          Logout
         </button>
       </aside>
 
-      {/* MAIN */}
       <main style={styles.main}>
-        <div style={styles.header}>
-          <div>
-            <h1 style={styles.heading}>Admin Dashboard</h1>
-            <p style={styles.subheading}>Welcome back, Admin 👋</p>
-          </div>
-        </div>
+        <h1 style={styles.heading}>Admin Dashboard</h1>
 
-        {/* STATS */}
-        <div style={styles.statsRow}>
-          {stats.map(s => <StatCard key={s.label} {...s} />)}
+        <div style={styles.statsGrid}>
+          {stats.map((stat) => (
+            <div key={stat.label} style={styles.statCard}>
+              <div style={styles.statValue}>{stat.value}</div>
+              <div style={styles.statLabel}>{stat.label}</div>
+            </div>
+          ))}
         </div>
 
         {loading ? (
-          <div style={styles.loader}>Loading data...</div>
+          <p>Loading...</p>
         ) : (
           <>
-            {/* BOOKINGS TAB */}
             {tab === "bookings" && (
-              <div style={styles.section}>
-                <h2 style={styles.sectionTitle}>📋 All Bookings</h2>
-                <div style={styles.tableWrap}>
-                  <table style={styles.table}>
-                    <thead>
-                      <tr>
-                        {["User", "Car", "From", "To", "Status", "Actions"].map(h => (
-                          <th key={h} style={styles.th}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bookings.length === 0 ? (
-                        <tr><td colSpan={6} style={styles.empty}>No bookings yet</td></tr>
-                      ) : bookings.map(b => (
-                        <tr key={b._id} style={styles.tr}>
-                          <td style={styles.td}>{b.userId?.name || b.name || "N/A"}</td>
-                          <td style={styles.td}>{b.carId?.name || "N/A"}</td>
-                          <td style={styles.td}>{b.fromDate ? new Date(b.fromDate).toLocaleDateString() : "—"}</td>
-                          <td style={styles.td}>{b.toDate ? new Date(b.toDate).toLocaleDateString() : "—"}</td>
-                          <td style={styles.td}>
-                            <span style={{ ...styles.badge, ...statusColor(b.status) }}>
-                              {b.status || "pending"}
-                            </span>
-                          </td>
-                          <td style={styles.td}>
-                            <div style={{ display: "flex", gap: 6 }}>
-                              <button style={styles.actionBtn("#00c6a0")}
-                                onClick={() => handleBookingStatus(b._id, "confirmed")}>✔ Confirm</button>
-                              <button style={styles.actionBtn("#e74c3c")}
-                                onClick={() => handleBookingStatus(b._id, "cancelled")}>✖ Cancel</button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* CARS TAB */}
-            {tab === "cars" && (
-              <div style={styles.section}>
-                <div style={styles.sectionHeader}>
-                  <h2 style={styles.sectionTitle}>🚗 Manage Cars</h2>
-                  <button style={styles.btnPrimary} onClick={() => setCarModal("add")}>
-                    <Icon d={Icons.plus} size={15} /> Add Car
-                  </button>
-                </div>
-                <div style={styles.carsGrid}>
-                  {cars.length === 0 ? (
-                    <div style={styles.empty}>No cars added yet</div>
-                  ) : cars.map(car => (
-                    <div key={car._id} style={styles.carCard}>
-                      <div style={styles.carImgWrap}>
-                        {car.image
-                          ? <img src={car.image} alt={car.name} style={styles.carImg} />
-                          : <div style={styles.carImgPlaceholder}>🚗</div>
-                        }
-                        <span style={{ ...styles.badge, ...(car.available ? styles.green : styles.red), position: "absolute", top: 8, right: 8 }}>
-                          {car.available ? "Available" : "Unavailable"}
-                        </span>
-                      </div>
-                      <div style={styles.carInfo}>
-                        <div style={styles.carName}>{car.name}</div>
-                        <div style={styles.carBrand}>{car.brand} · {car.category}</div>
-                        <div style={styles.carPrice}>₹{car.price}/day</div>
-                        <div style={styles.carMeta}>{car.seats} seats · {car.fuel}</div>
-                      </div>
-                      <div style={styles.carActions}>
-                        <button style={styles.iconBtn("#6c63ff")} onClick={() => setCarModal(car)}>
-                          <Icon d={Icons.edit} size={15} /> Edit
+              <section style={styles.section}>
+                <h2>All Bookings</h2>
+                <div style={styles.list}>
+                  {bookings.map((booking) => (
+                    <div key={booking._id} style={styles.listCard}>
+                      <p>User: {booking.userId?.name || booking.name || "N/A"}</p>
+                      <p>Car: {booking.carId?.name || "N/A"}</p>
+                      <p>Status: {booking.status}</p>
+                      <p>
+                        Dates:{" "}
+                        {booking.fromDate
+                          ? new Date(booking.fromDate).toLocaleDateString()
+                          : "N/A"}{" "}
+                        to{" "}
+                        {booking.toDate
+                          ? new Date(booking.toDate).toLocaleDateString()
+                          : "N/A"}
+                      </p>
+                      <div style={styles.actionRow}>
+                        <button
+                          style={styles.primaryButton}
+                          onClick={() =>
+                            updateBookingStatus(booking._id, "confirmed")
+                          }
+                        >
+                          Confirm
                         </button>
-                        <button style={styles.iconBtn("#e74c3c")} onClick={() => handleDeleteCar(car._id)}>
-                          <Icon d={Icons.trash} size={15} /> Delete
+                        <button
+                          style={styles.dangerButton}
+                          onClick={() =>
+                            updateBookingStatus(booking._id, "cancelled")
+                          }
+                        >
+                          Cancel
                         </button>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
+              </section>
             )}
 
-            {/* USERS TAB */}
-            {tab === "users" && (
-              <div style={styles.section}>
-                <h2 style={styles.sectionTitle}>👥 All Users</h2>
-                <div style={styles.tableWrap}>
-                  <table style={styles.table}>
-                    <thead>
-                      <tr>
-                        {["Name", "Email", "Role", "Joined"].map(h => (
-                          <th key={h} style={styles.th}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.length === 0 ? (
-                        <tr><td colSpan={4} style={styles.empty}>No users found</td></tr>
-                      ) : users.map(u => (
-                        <tr key={u._id} style={styles.tr}>
-                          <td style={styles.td}>{u.name}</td>
-                          <td style={styles.td}>{u.email}</td>
-                          <td style={styles.td}>
-                            <span style={{ ...styles.badge, ...(u.role === "admin" ? styles.purple : styles.blue) }}>
-                              {u.role}
-                            </span>
-                          </td>
-                          <td style={styles.td}>{new Date(u.createdAt).toLocaleDateString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            {tab === "cars" && (
+              <section style={styles.section}>
+                <div style={styles.sectionHeader}>
+                  <h2>Manage Cars</h2>
+                  <button style={styles.primaryButton} onClick={openAddModal}>
+                    Add Car
+                  </button>
                 </div>
-              </div>
+
+                <div style={styles.list}>
+                  {cars.map((car) => (
+                    <div key={car._id} style={styles.listCard}>
+                      <p>Name: {car.name}</p>
+                      <p>Brand: {car.brand}</p>
+                      <p>Model: {car.model || "N/A"}</p>
+                      <p>Price: Rs. {Number.isFinite(getCarPrice(car)) ? getCarPrice(car) : "--"}</p>
+                      <p>
+                        Details: {car.seats || "N/A"} seats, {car.fuelType || "N/A"},{" "}
+                        {car.transmission || "N/A"}
+                      </p>
+                      <div style={styles.actionRow}>
+                        <button
+                          style={styles.primaryButton}
+                          onClick={() => openEditModal(car)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          style={styles.dangerButton}
+                          onClick={() => deleteCar(car._id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {tab === "users" && (
+              <section style={styles.section}>
+                <h2>Users</h2>
+                <div style={styles.list}>
+                  {users.map((user) => (
+                    <div key={user._id} style={styles.listCard}>
+                      <p>Name: {user.name}</p>
+                      <p>Email: {user.email}</p>
+                      <p>Role: {user.role}</p>
+                      <p>
+                        Joined: {new Date(user.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
             )}
           </>
         )}
       </main>
 
-      {/* MODALS */}
-      {carModal && (
-        <Modal
-          title={carModal === "add" ? "➕ Add New Car" : `✏️ Edit — ${carModal.name}`}
-          onClose={() => setCarModal(null)}
-        >
-          <CarForm
-            initial={carModal === "add" ? {} : carModal}
-            onSave={carModal === "add" ? handleAddCar : handleEditCar}
-            onClose={() => setCarModal(null)}
-          />
-        </Modal>
+      {modalOpen && (
+        <CarModal
+          title={editingCarId ? "Edit Car" : "Add Car"}
+          form={form}
+          setForm={setForm}
+          onClose={resetModal}
+          onSubmit={saveCar}
+          saving={saving}
+        />
       )}
-
-      {toast && <div style={styles.toast}>{toast}</div>}
     </div>
   );
 }
 
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
-const statusColor = (s) => ({
-  confirmed: { background: "#00c6a022", color: "#00c6a0", border: "1px solid #00c6a044" },
-  cancelled:  { background: "#e74c3c22", color: "#e74c3c", border: "1px solid #e74c3c44" },
-  pending:    { background: "#f39c1222", color: "#f39c12", border: "1px solid #f39c1244" },
-}[s] || { background: "#ffffff22", color: "#ccc" });
-
-// ─── STYLES ───────────────────────────────────────────────────────────────────
 const styles = {
-  root: { display: "flex", minHeight: "100vh", fontFamily: "'Segoe UI', sans-serif", background: "#0d1117", color: "#e6edf3" },
-  sidebar: { width: 220, background: "#161b22", borderRight: "1px solid #30363d", display: "flex", flexDirection: "column", padding: "24px 12px", position: "sticky", top: 0, height: "100vh" },
-  sidebarLogo: { fontSize: 20, fontWeight: 700, color: "#fff", padding: "0 12px 24px", borderBottom: "1px solid #30363d", marginBottom: 16 },
-  nav: { display: "flex", flexDirection: "column", gap: 4, flex: 1 },
-  navBtn: { display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 8, border: "none", background: "transparent", color: "#8b949e", cursor: "pointer", fontSize: 14, textAlign: "left", transition: "all 0.2s" },
-  navBtnActive: { background: "#6c63ff22", color: "#6c63ff" },
-  logoutBtn: { display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 8, border: "none", background: "transparent", color: "#e74c3c", cursor: "pointer", fontSize: 14 },
-  main: { flex: 1, padding: "32px", overflowY: "auto" },
-  header: { marginBottom: 28 },
-  heading: { fontSize: 26, fontWeight: 700, margin: 0 },
-  subheading: { color: "#8b949e", marginTop: 4, fontSize: 14 },
-  statsRow: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 32 },
-  statCard: { background: "#161b22", borderRadius: 12, padding: "20px", display: "flex", alignItems: "center", gap: 16, border: "1px solid #30363d" },
-  statIcon: { padding: 12, borderRadius: 10 },
-  statValue: { fontSize: 24, fontWeight: 700 },
-  statLabel: { fontSize: 12, color: "#8b949e", marginTop: 2 },
-  section: { background: "#161b22", borderRadius: 12, border: "1px solid #30363d", padding: 24 },
-  sectionHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
-  sectionTitle: { margin: 0, fontSize: 18, fontWeight: 600 },
-  tableWrap: { overflowX: "auto" },
-  table: { width: "100%", borderCollapse: "collapse" },
-  th: { padding: "12px 16px", textAlign: "left", fontSize: 12, color: "#8b949e", borderBottom: "1px solid #30363d", whiteSpace: "nowrap" },
-  tr: { borderBottom: "1px solid #21262d" },
-  td: { padding: "14px 16px", fontSize: 14, verticalAlign: "middle" },
-  empty: { padding: 40, textAlign: "center", color: "#8b949e", fontSize: 14 },
-  badge: { padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600 },
-  green:  { background: "#00c6a022", color: "#00c6a0", border: "1px solid #00c6a044" },
-  red:    { background: "#e74c3c22", color: "#e74c3c", border: "1px solid #e74c3c44" },
-  blue:   { background: "#3498db22", color: "#3498db", border: "1px solid #3498db44" },
-  purple: { background: "#6c63ff22", color: "#6c63ff", border: "1px solid #6c63ff44" },
-  actionBtn: (c) => ({ padding: "5px 12px", borderRadius: 6, border: `1px solid ${c}44`, background: c + "22", color: c, cursor: "pointer", fontSize: 12, fontWeight: 600 }),
-  iconBtn: (c) => ({ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 6, border: `1px solid ${c}44`, background: c + "22", color: c, cursor: "pointer", fontSize: 12, fontWeight: 600 }),
-  carsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16, marginTop: 16 },
-  carCard: { background: "#0d1117", borderRadius: 10, border: "1px solid #30363d", overflow: "hidden" },
-  carImgWrap: { position: "relative", height: 150, background: "#21262d" },
-  carImg: { width: "100%", height: "100%", objectFit: "cover" },
-  carImgPlaceholder: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 48 },
-  carInfo: { padding: "14px 16px" },
-  carName: { fontWeight: 700, fontSize: 16 },
-  carBrand: { color: "#8b949e", fontSize: 12, marginTop: 2 },
-  carPrice: { color: "#00c6a0", fontWeight: 700, fontSize: 15, marginTop: 6 },
-  carMeta: { color: "#8b949e", fontSize: 12, marginTop: 4 },
-  carActions: { display: "flex", gap: 8, padding: "0 16px 14px" },
-  btnPrimary: { display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 8, border: "none", background: "#6c63ff", color: "#fff", cursor: "pointer", fontSize: 14, fontWeight: 600 },
-  btnSecondary: { padding: "9px 18px", borderRadius: 8, border: "1px solid #30363d", background: "transparent", color: "#8b949e", cursor: "pointer", fontSize: 14 },
-  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 },
-  modal: { background: "#161b22", borderRadius: 14, border: "1px solid #30363d", width: "90%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto", padding: 28 },
-  modalHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
-  modalTitle: { margin: 0, fontSize: 18, fontWeight: 700 },
-  closeBtn: { background: "none", border: "none", color: "#8b949e", cursor: "pointer", padding: 4 },
-  formGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 },
-  formLabel: { display: "block", fontSize: 12, color: "#8b949e", marginBottom: 5 },
-  formInput: { width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #30363d", background: "#0d1117", color: "#e6edf3", fontSize: 14, boxSizing: "border-box", outline: "none" },
-  errBanner: { background: "#e74c3c22", border: "1px solid #e74c3c44", color: "#e74c3c", padding: "10px 14px", borderRadius: 8, fontSize: 13 },
-  loader: { textAlign: "center", padding: 60, color: "#8b949e", fontSize: 16 },
-  toast: { position: "fixed", bottom: 28, right: 28, background: "#161b22", border: "1px solid #30363d", color: "#e6edf3", padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 600, zIndex: 200, boxShadow: "0 8px 24px rgba(0,0,0,0.4)" },
+  page: {
+    display: "grid",
+    gridTemplateColumns: "220px 1fr",
+    minHeight: "100vh",
+    background: "#0f172a",
+    color: "#e2e8f0",
+  },
+  sidebar: {
+    padding: "24px 16px",
+    borderRight: "1px solid #1e293b",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    background: "#111827",
+  },
+  sidebarTitle: {
+    margin: "0 0 12px",
+  },
+  navButton: {
+    padding: "10px 12px",
+    background: "transparent",
+    border: "1px solid #334155",
+    color: "#cbd5e1",
+    borderRadius: "8px",
+    cursor: "pointer",
+    textAlign: "left",
+  },
+  activeNavButton: {
+    padding: "10px 12px",
+    background: "#2563eb",
+    border: "1px solid #2563eb",
+    color: "white",
+    borderRadius: "8px",
+    cursor: "pointer",
+    textAlign: "left",
+  },
+  logoutButton: {
+    marginTop: "auto",
+    padding: "10px 12px",
+    background: "#7f1d1d",
+    border: "1px solid #7f1d1d",
+    color: "white",
+    borderRadius: "8px",
+    cursor: "pointer",
+  },
+  main: {
+    padding: "32px",
+  },
+  heading: {
+    marginTop: 0,
+  },
+  statsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+    gap: "16px",
+    marginBottom: "24px",
+  },
+  statCard: {
+    background: "#111827",
+    border: "1px solid #1e293b",
+    borderRadius: "12px",
+    padding: "20px",
+  },
+  statValue: {
+    fontSize: "28px",
+    fontWeight: "700",
+  },
+  statLabel: {
+    color: "#94a3b8",
+    marginTop: "6px",
+  },
+  section: {
+    background: "#111827",
+    border: "1px solid #1e293b",
+    borderRadius: "12px",
+    padding: "20px",
+  },
+  sectionHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "16px",
+  },
+  list: {
+    display: "grid",
+    gap: "16px",
+  },
+  listCard: {
+    background: "#0f172a",
+    border: "1px solid #334155",
+    borderRadius: "10px",
+    padding: "16px",
+  },
+  actionRow: {
+    display: "flex",
+    gap: "10px",
+    marginTop: "12px",
+  },
+  primaryButton: {
+    padding: "10px 14px",
+    background: "#2563eb",
+    border: "none",
+    color: "white",
+    borderRadius: "8px",
+    cursor: "pointer",
+  },
+  secondaryButton: {
+    padding: "10px 14px",
+    background: "transparent",
+    border: "1px solid #475569",
+    color: "#e2e8f0",
+    borderRadius: "8px",
+    cursor: "pointer",
+  },
+  dangerButton: {
+    padding: "10px 14px",
+    background: "#dc2626",
+    border: "none",
+    color: "white",
+    borderRadius: "8px",
+    cursor: "pointer",
+  },
+  overlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(15, 23, 42, 0.8)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "24px",
+  },
+  modal: {
+    width: "100%",
+    maxWidth: "760px",
+    background: "#111827",
+    border: "1px solid #1e293b",
+    borderRadius: "14px",
+    padding: "24px",
+  },
+  modalHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "16px",
+  },
+  modalTitle: {
+    margin: 0,
+  },
+  closeBtn: {
+    background: "transparent",
+    border: "1px solid #475569",
+    color: "#e2e8f0",
+    borderRadius: "8px",
+    padding: "8px 10px",
+    cursor: "pointer",
+  },
+  formGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: "12px",
+  },
+  input: {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: "8px",
+    border: "1px solid #334155",
+    background: "#0f172a",
+    color: "#e2e8f0",
+    boxSizing: "border-box",
+  },
+  textarea: {
+    minHeight: "90px",
+    resize: "vertical",
+  },
+  checkboxRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  modalActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "10px",
+    marginTop: "18px",
+  },
 };

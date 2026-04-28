@@ -1,11 +1,18 @@
 const express = require("express");
 const router = express.Router();
 
-const { verifyToken } = require("../middleware/auth");
-const { addCar, getCars, deleteCar } = require("../controllers/carController");
+const { verifyToken, isAdmin } = require("../middleware/auth");
+const {
+  addCar,
+  getCars,
+  updateCar,
+  deleteCar,
+} = require("../controllers/carController");
 
-router.post("/add", verifyToken, addCar);
+router.post("/", verifyToken, isAdmin, addCar);
+router.post("/add", verifyToken, isAdmin, addCar);
 router.get("/", getCars);
-router.delete("/:id", verifyToken, deleteCar);
+router.put("/:id", verifyToken, isAdmin, updateCar);
+router.delete("/:id", verifyToken, isAdmin, deleteCar);
 
 module.exports = router;

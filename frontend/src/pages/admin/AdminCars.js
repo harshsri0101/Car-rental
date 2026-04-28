@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import API from "../../services/api";
 
+const getCarPrice = (car) => Number(car?.pricePerDay ?? car?.price);
+
 export default function AdminCars() {
   const [cars, setCars] = useState([]);
 
@@ -20,17 +22,16 @@ export default function AdminCars() {
 
   return (
     <div style={styles.container}>
-      <h2>🚗 All Cars</h2>
+      <h2>All Cars</h2>
 
       {cars.map((car) => (
         <div key={car._id} style={styles.card}>
-          <img src={car.image} alt="" width="150" />
-          <h3>{car.make} {car.model}</h3>
-          <p>₹{car.price}</p>
+          <img src={car.image} alt={car.name} width="150" />
+          <h3>{car.name}</h3>
+          <p>{car.brand}</p>
+          <p>Rs. {Number.isFinite(getCarPrice(car)) ? getCarPrice(car) : "--"}</p>
 
-          <button onClick={() => deleteCar(car._id)}>
-            ❌ Delete
-          </button>
+          <button onClick={() => deleteCar(car._id)}>Delete</button>
         </div>
       ))}
     </div>

@@ -1,7 +1,8 @@
 import React from "react";
 
-export default function CarCard({ car }) {
+const getCarPrice = (car) => Number(car?.pricePerDay ?? car?.price);
 
+export default function CarCard({ car }) {
   const handleBook = () => {
     const user = JSON.parse(localStorage.getItem("user"));
 
@@ -10,28 +11,21 @@ export default function CarCard({ car }) {
       return;
     }
 
-    alert(`Booked: ${car.make} ${car.model}`);
+    alert(`Booked: ${car.name}`);
   };
 
   return (
     <div style={styles.card}>
-      
-      {/* IMAGE */}
-      <img
-        src={car.image}
-        alt={car.model}
-        style={styles.image}
-      />
+      <img src={car.image} alt={car.name} style={styles.image} />
 
-      {/* INFO */}
       <div style={styles.info}>
-        <h3>{car.make} {car.model}</h3>
+        <h3>{car.name}</h3>
+        <p>Brand: {car.brand}</p>
         <p>Year: {car.year}</p>
-        <p>Color: {car.color}</p>
-        <h4>₹ {car.price} / day</h4>
+        <p>Fuel: {car.fuelType}</p>
+        <h4>Rs. {Number.isFinite(getCarPrice(car)) ? getCarPrice(car) : "--"} / day</h4>
       </div>
 
-      {/* BUTTON */}
       <button style={styles.button} onClick={handleBook}>
         Book Now
       </button>
@@ -45,25 +39,22 @@ const styles = {
     borderRadius: "12px",
     overflow: "hidden",
     boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-    background: "#fff"
+    background: "#fff",
   },
-
   image: {
     width: "100%",
     height: "180px",
-    objectFit: "cover"
+    objectFit: "cover",
   },
-
   info: {
-    padding: "10px"
+    padding: "10px",
   },
-
   button: {
     width: "100%",
     padding: "10px",
     background: "black",
     color: "white",
     border: "none",
-    cursor: "pointer"
-  }
+    cursor: "pointer",
+  },
 };

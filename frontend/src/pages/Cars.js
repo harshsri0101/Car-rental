@@ -1,5 +1,19 @@
 import React, { useEffect, useState } from "react";
-import API from "../services/api";
+import API, { API_ORIGIN } from "../services/api";
+
+const getCarPrice = (car) => Number(car?.pricePerDay ?? car?.price);
+
+const buildImageUrl = (image) => {
+  if (!image) {
+    return "https://via.placeholder.com/300x180?text=No+Image";
+  }
+
+  if (image.startsWith("http")) {
+    return image;
+  }
+
+  return `${API_ORIGIN}/${image.replace(/^\/+/, "")}`;
+};
 
 export default function Cars() {
   const [cars, setCars] = useState([]);
@@ -34,6 +48,12 @@ export default function Cars() {
       alert("Please login first to book a car");
       return;
     }
+
+    if (!Number.isFinite(getCarPrice(car)) || getCarPrice(car) <= 0) {
+      alert("This car does not have a valid daily price yet.");
+      return;
+    }
+
     setSelectedCar(car);
     setBookingSuccess(false);
     setFormData({ name: "", email: "", phone: "", fromDate: "", toDate: "" });
@@ -47,17 +67,22 @@ export default function Cars() {
     const { name, email, phone, fromDate, toDate } = formData;
 
     if (!name || !phone || !fromDate || !toDate) {
-      alert("Please fill all required fields!");
+      alert("Please fill all required fields.");
       return;
     }
 
     if (new Date(toDate) <= new Date(fromDate)) {
-      alert("Return date must be after pickup date!");
+      alert("Return date must be after pickup date.");
+      return;
+    }
+
+    if (!selectedCar || !Number.isFinite(getCarPrice(selectedCar)) || getCarPrice(selectedCar) <= 0) {
+      alert("This car does not have a valid daily price yet.");
       return;
     }
 
     try {
-      const res = await API.post("/bookings", {
+      await API.post("/bookings", {
         carId: selectedCar._id,
         name,
         email,
@@ -65,7 +90,6 @@ export default function Cars() {
         fromDate,
         toDate,
       });
-      console.log("Booking response:", res.data);
       setBookingSuccess(true);
     } catch (err) {
       console.log("Booking error:", err);
@@ -93,11 +117,7 @@ export default function Cars() {
             cars.map((car) => (
               <div key={car._id} style={styles.card}>
                 <img
-                  src={
-                    car.image?.startsWith("http")
-                      ? car.image
-                      : `http://localhost:5002/${car.image}`
-                  }
+                  src={buildImageUrl(car.image)}
                   alt={car.name}
                   style={styles.image}
                   onError={(e) => {
@@ -106,13 +126,16 @@ export default function Cars() {
                   }}
                 />
                 <div style={styles.info}>
+                  {Number.isFinite(getCarPrice(car)) ? null : (
+                    <p style={{ color: "red" }}>Price unavailable</p>
+                  )}
                   <h3>{car.name}</h3>
                   <p>Brand: {car.brand}</p>
                   <p>Year: {car.year}</p>
-                  <p>Fuel: {car.fuelType}</p>        {/* ✅ fuelType */}
+                  <p>Fuel: {car.fuelType}</p>
                   <p>Seats: {car.seats}</p>
                   <p>Transmission: {car.transmission}</p>
-                  <h4>Rs. {car.pricePerDay} / day</h4>  {/* ✅ pricePerDay */}
+                  <h4>Rs. {Number.isFinite(getCarPrice(car)) ? getCarPrice(car) : "--"} / day</h4>
                 </div>
                 <button
                   style={car.available ? styles.button : styles.buttonDisabled}
@@ -127,23 +150,33 @@ export default function Cars() {
         </div>
       )}
 
-      {/* BOOKING MODAL */}
       {selectedCar && (
         <div style={styles.overlay}>
           <div style={styles.modal}>
-            <button style={styles.closeBtn} onClick={handleClose}>X</button>
+            <button style={styles.closeBtn} onClick={handleClose}>
+              X
+            </button>
 
             {bookingSuccess ? (
               <div style={styles.successBox}>
-                <h2>Booking Confirmed! 🎉</h2>
-                <p>Your booking for <strong>{selectedCar.name}</strong> is placed successfully.</p>
-                <p>We will contact you on <strong>{formData.phone}</strong>.</p>
-                <button style={styles.button} onClick={handleClose}>Close</button>
+                <h2>Booking Confirmed</h2>
+                <p>
+                  Your booking for <strong>{selectedCar.name}</strong> is placed
+                  successfully.
+                </p>
+                <p>
+                  We will contact you on <strong>{formData.phone}</strong>.
+                </p>
+                <button style={styles.button} onClick={handleClose}>
+                  Close
+                </button>
               </div>
             ) : (
               <>
                 <h2 style={styles.modalTitle}>Book: {selectedCar.name}</h2>
-                <p style={styles.modalSubtitle}>Rs. {selectedCar.pricePerDay} / day</p> {/* ✅ pricePerDay */}
+                <p style={styles.modalSubtitle}>
+                  Rs. {Number.isFinite(getCarPrice(selectedCar)) ? getCarPrice(selectedCar) : "--"} / day
+                </p>
 
                 <label style={styles.label}>Full Name *</label>
                 <input
@@ -195,21 +228,23 @@ export default function Cars() {
                   min={formData.fromDate || new Date().toISOString().split("T")[0]}
                 />
 
-                {/* ✅ Total Price Preview */}
                 {formData.fromDate &&
                   formData.toDate &&
-                  new Date(formData.toDate) > new Date(formData.fromDate) && (
+                  new Date(formData.toDate) > new Date(formData.fromDate) &&
+                  Number.isFinite(getCarPrice(selectedCar)) && (
                     <div style={styles.pricePreview}>
-                      Total Days: {Math.ceil(
+                      Total Days:{" "}
+                      {Math.ceil(
                         (new Date(formData.toDate) - new Date(formData.fromDate)) /
-                        (1000 * 60 * 60 * 24)
-                      )} days
+                          (1000 * 60 * 60 * 24)
+                      )}{" "}
+                      days
                       <br />
                       Total Price: Rs.{" "}
                       {Math.ceil(
                         (new Date(formData.toDate) - new Date(formData.fromDate)) /
-                        (1000 * 60 * 60 * 24)
-                      ) * selectedCar.pricePerDay} {/* ✅ pricePerDay */}
+                          (1000 * 60 * 60 * 24)
+                      ) * getCarPrice(selectedCar)}
                     </div>
                   )}
 
@@ -268,8 +303,10 @@ const styles = {
   error: { fontSize: "16px", color: "red", fontWeight: "bold" },
   overlay: {
     position: "fixed",
-    top: 0, left: 0,
-    width: "100%", height: "100%",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
     background: "rgba(0,0,0,0.6)",
     display: "flex",
     justifyContent: "center",
@@ -288,7 +325,8 @@ const styles = {
   },
   closeBtn: {
     position: "absolute",
-    top: "12px", right: "16px",
+    top: "12px",
+    right: "16px",
     background: "none",
     border: "none",
     fontSize: "18px",
@@ -297,7 +335,12 @@ const styles = {
   },
   modalTitle: { marginBottom: "4px", fontSize: "22px" },
   modalSubtitle: { color: "#666", marginBottom: "16px" },
-  label: { display: "block", marginBottom: "4px", fontWeight: "bold", fontSize: "14px" },
+  label: {
+    display: "block",
+    marginBottom: "4px",
+    fontWeight: "bold",
+    fontSize: "14px",
+  },
   input: {
     width: "100%",
     padding: "10px",

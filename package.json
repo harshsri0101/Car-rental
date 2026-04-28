@@ -1,11 +1,15 @@
 {
-  "name": "backend",
+  "name": "car-rental",
   "version": "1.0.0",
   "description": "",
-  "main": "server.js",
+  "main": "backend/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node backend/server.js",
+    "server": "node backend/server.js",
+    "client": "npm start --prefix frontend",
+    "build:client": "npm run build --prefix frontend",
+    "fix:car-prices": "node backend/scripts/fixCarPrices.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",

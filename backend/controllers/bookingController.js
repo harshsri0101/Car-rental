@@ -1,89 +1,116 @@
-const Booking = require("../models/Booking");
+const Booking = require("../models/booking");
+const Car = require("../models/car");
+const { getNormalizedPrice } = require("../utils/price");
 
-// CREATE BOOKING
 const createBooking = async (req, res) => {
   try {
     const { carId, name, email, phone, fromDate, toDate } = req.body;
 
-    // validation
     if (!carId || !fromDate || !toDate) {
-      return res.status(400).json({ message: "carId, fromDate, toDate are required" });
+      return res.status(400).json({
+        message: "carId, fromDate, toDate are required",
+      });
     }
 
-    // total days calculate karo
     const from = new Date(fromDate);
     const to = new Date(toDate);
+
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
+      return res.status(400).json({
+        message: "Invalid date format",
+      });
+    }
+
     const days = Math.ceil((to - from) / (1000 * 60 * 60 * 24));
 
     if (days <= 0) {
       return res.status(400).json({ message: "Invalid dates" });
     }
 
-    // car ki price lo
-    const Car = require("../models/Car");
     const car = await Car.findById(carId);
     if (!car) {
       return res.status(404).json({ message: "Car not found" });
     }
 
-    const totalPrice = days * car.price;
+    const dailyPrice = getNormalizedPrice(car);
 
-    // booking banao
+    if (!Number.isFinite(dailyPrice) || dailyPrice <= 0) {
+      return res.status(400).json({
+        message: "Car price is invalid",
+      });
+    }
+
+    if (car.pricePerDay !== dailyPrice) {
+      await Car.updateOne(
+        { _id: car._id },
+        { $set: { pricePerDay: dailyPrice } }
+      );
+    }
+
+    const totalPrice = days * dailyPrice;
+
+    if (!Number.isFinite(totalPrice)) {
+      return res.status(400).json({
+        message: "Total price calculation failed",
+      });
+    }
+
     const booking = await Booking.create({
-      userId: req.user.id,  // ✅ token se user ID
+      userId: req.user?.id,
       carId,
       name,
       email,
       phone,
-      fromDate,
-      toDate,
+      fromDate: from,
+      toDate: to,
       totalPrice,
       status: "pending",
     });
 
-    res.status(201).json({ message: "Booking created successfully", booking });
-
+    res.status(201).json({
+      message: "Booking created successfully",
+      booking,
+    });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.log("Booking Error:", err);
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
 
-// GET ALL BOOKINGS (Admin)
 const getBookings = async (req, res) => {
   try {
     const bookings = await Booking.find()
-      .populate("userId", "name email")   // ✅ user ka naam email aayega
-      .populate("carId", "name price")    // ✅ car ka naam price aayega
-      .sort({ createdAt: -1 });           // ✅ latest pehle
-
-    res.json(bookings);
-
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-};
-
-// GET MY BOOKINGS (Client)
-const getMyBookings = async (req, res) => {
-  try {
-    const bookings = await Booking.find({ userId: req.user.id })
-      .populate("carId", "name price image")
+      .populate("userId", "name email")
+      .populate("carId", "name pricePerDay")
       .sort({ createdAt: -1 });
 
     res.json(bookings);
-
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
-// UPDATE BOOKING STATUS (Admin)
+const getMyBookings = async (req, res) => {
+  try {
+    const bookings = await Booking.find({ userId: req.user.id })
+      .populate("carId", "name pricePerDay image")
+      .sort({ createdAt: -1 });
+
+    res.json(bookings);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
 const updateBookingStatus = async (req, res) => {
   try {
     const { status } = req.body;
+
     const booking = await Booking.findByIdAndUpdate(
       req.params.id,
       { status },
@@ -95,11 +122,15 @@ const updateBookingStatus = async (req, res) => {
     }
 
     res.json({ message: "Status updated", booking });
-
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
-module.exports = { createBooking, getBookings, getMyBookings, updateBookingStatus };
+module.exports = {
+  createBooking,
+  getBookings,
+  getMyBookings,
+  updateBookingStatus,
+};

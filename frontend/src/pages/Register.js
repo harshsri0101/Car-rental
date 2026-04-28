@@ -1,33 +1,28 @@
 import React, { useState } from "react";
-import API from "../api";
 import { useNavigate } from "react-router-dom";
+import API from "../services/api";
 
 export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const navigate = useNavigate();
 
-  // ✅ FIXED FUNCTION
   const handleRegister = async (e) => {
-    e.preventDefault(); // 🔥 VERY IMPORTANT
+    e.preventDefault();
 
     try {
-      const res = await API.post("/auth/register", {
+      await API.post("/auth/register", {
         name,
         email,
         password,
       });
 
-      console.log(res.data);
-      alert("User registered successfully ✅");
-
-      navigate("/login"); // redirect
-
+      alert("User registered successfully");
+      navigate("/login");
     } catch (error) {
       console.log(error.response?.data);
-      alert(error.response?.data?.message || "Something went wrong!");
+      alert(error.response?.data?.message || "Something went wrong");
     }
   };
 
@@ -35,9 +30,7 @@ export default function Register() {
     <div style={styles.container}>
       <h2>Create Account</h2>
 
-      {/* ✅ FORM ADDED HERE */}
       <form onSubmit={handleRegister}>
-        
         <input
           type="text"
           placeholder="Name"
@@ -62,17 +55,14 @@ export default function Register() {
           style={styles.input}
         />
 
-        {/* ✅ IMPORTANT */}
         <button type="submit" style={styles.button}>
-          Register 🚀
+          Register
         </button>
-
       </form>
     </div>
   );
 }
 
-// simple styling
 const styles = {
   container: {
     maxWidth: "300px",

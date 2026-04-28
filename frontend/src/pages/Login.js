@@ -1,34 +1,24 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../services/api";
-
-localStorage.setItem("user", JSON.stringify(data.user));
-localStorage.setItem("token", data.token);
-
-if (data.user.role === "admin") {
-  navigate("/admin-dashboard");
-} else {
-  navigate("/user-dashboard");
-}
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
-  // 👇 YAHI PAR YE FUNCTION LIKHNA HAI
-  const handleLogin = () => {
-    API.post("/login", { email, password })
-      .then(res => {
-        console.log("RESPONSE:", res.data); // DEBUG
+  const handleLogin = async () => {
+    try {
+      const res = await API.post("/auth/login", { email, password });
 
-        localStorage.setItem("user", JSON.stringify(res.data.user));
-        localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+      localStorage.setItem("token", res.data.token);
 
-        alert("Login Successful");
-      })
-      .catch(err => {
-        console.log("ERROR:", err);
-        alert("Login Failed");
-      });
+      navigate(res.data.user.role === "admin" ? "/admin" : "/cars");
+    } catch (err) {
+      console.log("Login error:", err);
+      alert(err.response?.data?.message || "Login failed");
+    }
   };
 
   return (
@@ -37,16 +27,21 @@ function Login() {
 
       <input
         placeholder="Email"
+        value={email}
         onChange={(e) => setEmail(e.target.value)}
-      /><br /><br />
+      />
+      <br />
+      <br />
 
       <input
         type="password"
         placeholder="Password"
+        value={password}
         onChange={(e) => setPassword(e.target.value)}
-      /><br /><br />
+      />
+      <br />
+      <br />
 
-      {/* 👇 YAHA BUTTON CLICK PAR CALL HOGA */}
       <button onClick={handleLogin}>Login</button>
     </div>
   );

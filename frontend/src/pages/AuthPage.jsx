@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
+import { Link, useNavigate } from "react-router-dom";
+import API from "../services/api";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -9,7 +9,6 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -25,40 +24,28 @@ export default function AuthPage() {
 
     try {
       if (isLogin) {
-        const res = await axios.post("http://localhost:5002/api/auth/login", {  // ✅ FIXED
-          email,
-          password,
-        });
-
+        const res = await API.post("/auth/login", { email, password });
         const { token, user } = res.data;
 
-        // ❌ Block admin from client login
         if (user.role === "admin") {
-          setError("❌ Admins must login from Admin Portal!");
-          setLoading(false);
+          setError("Admins must login from the admin portal.");
           return;
         }
 
         localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(user));
         navigate("/cars");
-
-      } else {
-        await axios.post("http://localhost:5002/api/auth/register", {  // ✅ FIXED
-          name,
-          email,
-          password,
-        });
-
-        alert("✅ Account created! Please login.");
-        setIsLogin(true);
-        setName("");
-        setEmail("");
-        setPassword("");
+        return;
       }
 
+      await API.post("/auth/register", { name, email, password });
+      alert("Account created. Please login.");
+      setIsLogin(true);
+      setName("");
+      setEmail("");
+      setPassword("");
     } catch (err) {
-      setError(err.response?.data?.message || "Something went wrong!");
+      setError(err.response?.data?.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -66,31 +53,25 @@ export default function AuthPage() {
 
   return (
     <div style={styles.wrapper}>
-
-      {/* LEFT */}
       <div style={styles.left}>
-        <h1 style={styles.logo}>🚗 Car Rental</h1>
-        <p style={styles.tagline}>Book your favorite cars instantly!</p>
+        <h1 style={styles.logo}>Car Rental</h1>
+        <p style={styles.tagline}>Book your favorite cars instantly.</p>
         <div style={styles.adminLinkBox}>
-          <p style={styles.adminText}>Are you an Admin?</p>
+          <p style={styles.adminText}>Are you an admin?</p>
           <Link to="/admin/login" style={styles.adminLink}>
-            🔐 Go to Admin Portal
+            Go to Admin Portal
           </Link>
         </div>
       </div>
 
-      {/* RIGHT */}
       <div style={styles.right}>
         <div style={styles.card}>
-
-          <div style={styles.badge}>👤 Client Portal</div>
-
+          <div style={styles.badge}>Client Portal</div>
           <h2 style={styles.title}>
-            {isLogin ? "Welcome Back!" : "Create Account"}
+            {isLogin ? "Welcome Back" : "Create Account"}
           </h2>
-
           <p style={styles.subtitle}>
-            {isLogin ? "Login to book your car 🚗" : "Join us today 🚀"}
+            {isLogin ? "Login to book your car" : "Join and start booking"}
           </p>
 
           {error && <p style={styles.errorMsg}>{error}</p>}
@@ -123,7 +104,7 @@ export default function AuthPage() {
             />
 
             <button type="submit" style={styles.button} disabled={loading}>
-              {loading ? "Please wait..." : isLogin ? "🚗 Login" : "🚀 Register"}
+              {loading ? "Please wait..." : isLogin ? "Login" : "Register"}
             </button>
           </form>
 
@@ -131,12 +112,14 @@ export default function AuthPage() {
             {isLogin ? "Don't have an account?" : "Already have an account?"}
             <span
               style={styles.switchLink}
-              onClick={() => { setIsLogin(!isLogin); setError(""); }}
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setError("");
+              }}
             >
               {isLogin ? " Register" : " Login"}
             </span>
           </p>
-
         </div>
       </div>
     </div>
@@ -160,7 +143,12 @@ const styles = {
     textAlign: "center",
   },
   logo: { fontSize: "36px", marginBottom: "10px" },
-  tagline: { fontSize: "16px", color: "#ccc", maxWidth: "300px", marginBottom: "40px" },
+  tagline: {
+    fontSize: "16px",
+    color: "#ccc",
+    maxWidth: "300px",
+    marginBottom: "40px",
+  },
   adminLinkBox: {
     marginTop: "20px",
     padding: "16px 24px",
