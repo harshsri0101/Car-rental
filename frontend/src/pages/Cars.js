@@ -20,6 +20,8 @@ export default function Cars() {
   const [cars, setCars] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [animateCards, setAnimateCards] = useState(false);
+  const [hoveredCarId, setHoveredCarId] = useState(null);
   const [selectedCar, setSelectedCar] = useState(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
@@ -37,6 +39,7 @@ export default function Cars() {
       .then((res) => {
         setCars(res.data);
         setLoading(false);
+        setTimeout(() => setAnimateCards(true), 60);
       })
       .catch((err) => {
         console.log("Error fetching cars:", err);
@@ -169,11 +172,38 @@ export default function Cars() {
             <div style={styles.emptyState}>No cars available at the moment.</div>
           ) : (
             cars.map((car) => (
-              <div key={car._id} style={styles.card}>
+              <div
+                key={car._id}
+                style={{
+                  ...styles.card,
+                  ...(animateCards ? styles.cardVisible : styles.cardHidden),
+                  transitionDelay: animateCards
+                    ? `${Math.min(cars.indexOf(car) * 70, 280)}ms`
+                    : "0ms",
+                  transform:
+                    hoveredCarId === car._id
+                      ? "translateY(-8px)"
+                      : animateCards
+                        ? "translateY(0)"
+                        : "translateY(22px)",
+                  boxShadow:
+                    hoveredCarId === car._id
+                      ? "0 18px 36px rgba(15, 23, 42, 0.12)"
+                      : animateCards
+                        ? "0 10px 24px rgba(15, 23, 42, 0.05)"
+                        : "0 10px 24px rgba(15, 23, 42, 0.02)",
+                }}
+                onMouseEnter={() => setHoveredCarId(car._id)}
+                onMouseLeave={() => setHoveredCarId(null)}
+              >
                 <img
                   src={buildImageUrl(car.image)}
                   alt={car.name}
-                  style={styles.image}
+                  style={{
+                    ...styles.image,
+                    transform:
+                      hoveredCarId === car._id ? "scale(1.04)" : "scale(1)",
+                  }}
                   onError={(e) => {
                     e.target.src =
                       "https://via.placeholder.com/420x260?text=No+Image";
@@ -440,12 +470,20 @@ const styles = {
     overflow: "hidden",
     background: "#ffffff",
     boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)",
+    transition: "transform 0.25s ease, box-shadow 0.25s ease, opacity 0.3s ease",
+  },
+  cardHidden: {
+    opacity: 0,
+  },
+  cardVisible: {
+    opacity: 1,
   },
   image: {
     width: "100%",
     height: "220px",
     objectFit: "cover",
     display: "block",
+    transition: "transform 0.35s ease",
   },
   info: {
     padding: "18px",
@@ -537,6 +575,7 @@ const styles = {
     zIndex: 1000,
     padding: "20px",
     boxSizing: "border-box",
+    backdropFilter: "blur(4px)",
   },
   modal: {
     background: "#ffffff",
@@ -548,6 +587,9 @@ const styles = {
     maxHeight: "90vh",
     overflowY: "auto",
     boxShadow: "0 18px 40px rgba(15, 23, 42, 0.18)",
+    animation: "none",
+    transform: "translateY(0)",
+    transition: "transform 0.25s ease, box-shadow 0.25s ease",
   },
   modalImage: {
     width: "100%",
